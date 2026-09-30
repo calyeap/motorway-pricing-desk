@@ -21,7 +21,7 @@
 </style>
 <h1>LTA PDF layout diagnostic (safe)</h1>
 <p>Pick the LTA Vehicle Registration Details PDF. Output shows only allowlisted vehicle labels, their candidate values and line structure. Personal data is withheld or shape-masked.</p>
-<p><input type="file" id="f" accept="application/pdf,.pdf"> <button id="copy" hidden>Copy report</button></p>
+<p><input type="file" id="f" accept="application/pdf,.pdf" disabled> <button id="copy" hidden>Copy report</button></p>
 <p class="warn" id="msg"></p>
 <pre id="out"></pre>
 <script type="module">
@@ -31,6 +31,7 @@ const core = html.match(/<script id="mpd-core">([\s\S]*?)<\/script>/)[1]; // the
 const M = new Function('module', core + ';return MPD;')({ exports: {} });
 const pdfjs = await import('../vendor/pdfjs-4.10.38/pdf.min.mjs');
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('../vendor/pdfjs-4.10.38/pdf.worker.min.mjs', location.href).href;
+$('f').disabled = false;                                             // ready: core + pdf.js loaded
 
 const shape = (s) => String(s).replace(/[A-Za-z]/g, 'A').replace(/\d/g, '9');
 const SKIP = new Set(M.LTA_SKIP.map((x) => x.toLowerCase()));

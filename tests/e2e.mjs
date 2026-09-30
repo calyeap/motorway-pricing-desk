@@ -130,7 +130,7 @@ async function taycanSubject(p) {
   check('B: rail says THIN MARKET / REVIEW; reasons behind Details', mk.includes('THIN MARKET / REVIEW') && !mk.includes('0 exact-variant independent') && await p.evaluate(() => { const t = document.querySelector('#market').textContent; return t.includes('0 exact-variant independent') && t.includes('Motorway stock'); }));
   check('B: Motorway stock excluded from median by default', (await text(p, '#sMed')) === '$378,800');
   await setVal(p, '#resale', '330000');
-  check('B: blank-cost state shown once, inside the max block', !document_has(await p.content(), 'blankWarn') && await p.isVisible('#maxBlk .provnote') && (await text(p, '#maxBlk .provnote')).includes('blank') && (await text(p, '#maxBlk')).includes('MAXIMUM ACQUISITION PRICE') && !(await text(p, '#maxBlk')).includes('DETERMINISTIC'));
+  check('B: blank-cost state shown once, inside the max block', !document_has(await p.content(), 'blankWarn') && await p.isVisible('#maxBlk .provnote') && (await text(p, '#maxBlk .provnote')).includes('blank') && (await text(p, '#maxBlk')).includes('MAXIMUM PURCHASE PRICE') && !(await text(p, '#maxBlk')).includes('DETERMINISTIC'));
   check('B: expected resale stays dealer input (never auto-set)', (await p.inputValue('#resale')) === '330,000');
   await p.screenshot({ path: out + 'v08-desk-taycan-1440.png', fullPage: true });
   await next(p);
@@ -138,9 +138,9 @@ async function taycanSubject(p) {
   check('B: Decision leads with exceptions (thin, same car, blank costs)', dec.indexOf('Exceptions to review') < dec.indexOf('Market evidence') && dec.includes('Thin market / review') && dec.includes('Possible same car') && dec.includes('Some costs are blank and currently treated as $0'));
   check('B: Decision exceptions no longer list the owners rule (dealer-confirmed)', !/Owners \(derived\)\s*—/.test(dec) && !/not yet confirmed/i.test(dec) && dec.includes('owners 3 (derived)'));
   check('B: Decision names related variants, not adjacent', dec.includes('Related variants') && !/Adjacent/.test(dec));
-  check('B: Decision dealer inputs show Target profit buffer', dec.includes('Target profit buffer') && !dec.includes('Target gross profit'));
+  check('B: Decision deal numbers show Target gross profit', dec.includes('Target gross profit') && !dec.includes('Target profit buffer'));
   const sum = await p.evaluate(() => window.__mpd.ownerSummary());
-  check('B: owner summary has state, exact/related, own stock, max, disclaimer', ['THIN MARKET / REVIEW', 'Exact independent comps: 0', 'related (not same spec): 3', 'Motorway stock excluded', 'MAXIMUM ACQUISITION: $330,000 (PROVISIONAL', 'Asking prices are not sale prices.'].every(x => sum.includes(x)), sum.replace(/\n/g, ' | '));
+  check('B: owner summary has state, exact/related, own stock, max, disclaimer', ['THIN MARKET / REVIEW', 'Exact independent comps: 0', 'related (not same spec): 3', 'Motorway stock excluded', 'MAXIMUM PURCHASE: $330,000 (PROVISIONAL', 'Asking prices are not sale prices.'].every(x => sum.includes(x)), sum.replace(/\n/g, ' | '));
   check('B: owner summary has no valuation language', !/valuation|market value|worth/i.test(sum));
   await p.screenshot({ path: out + 'v08-decision-taycan-1440.png', fullPage: true });
   check('B: no page errors', !p.errors.length, p.errors.join(' | '));
@@ -201,7 +201,7 @@ async function taycanSubject(p) {
   await next(p);
   await setVal(p, '#resale', '330000');
   const maxWithPulse = await text(p, '#maxAcq');
-  check('D: softer asking evidence → "consider a larger profit buffer" shown by the buffer input', (await text(p, '#pulseHint')).includes('consider a larger profit buffer') && await p.isVisible('#pulseHint'));
+  check('D: softer asking evidence → "consider a larger target gross profit" shown by the input', (await text(p, '#pulseHint')).includes('consider a larger target gross profit') && await p.isVisible('#pulseHint'));
   check('D: pulse never changes the maximum (330,000 − 0 − 0 − 0)', maxWithPulse === '$330,000');
   await p.click('#actBack');
   await p.screenshot({ path: out + 'v08-pulse-1440.png', fullPage: true });
@@ -277,7 +277,7 @@ async function taycanSubject(p) {
   check('E: phone evidence figures stack as rows', await p.evaluate(() => { const d = [...document.querySelectorAll('#decBody .tldr > div')]; return d.length === 3 && d.every(x => getComputedStyle(x).display === 'flex'); }));
   check('E: phone Decision: Copy owner summary is the sticky primary action', (await text(p, '#actNext')) === 'Copy owner summary' && await inViewport(p, '#actNext'));
   check('E: no horizontal scroll (decision)', await noHScroll(p));
-  const order = await p.evaluate(() => ['Exceptions to review', 'Market evidence', 'Maximum acquisition price', 'Final offer'].map(t => document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) >= 0 ? document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) : document.querySelector('#decBody').innerText.indexOf(t)));
+  const order = await p.evaluate(() => ['Exceptions to review', 'Market evidence', 'Maximum purchase price', 'Final offer'].map(t => document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) >= 0 ? document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) : document.querySelector('#decBody').innerText.indexOf(t)));
   check('E: phone order car → exceptions → evidence → max → final offer', order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), order.join(','));
   const maxFont = await p.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#decBody .dmax .big')).fontSize));
   check('E: large Maximum Acquisition on phone', maxFont >= 30, String(maxFont));
@@ -387,6 +387,7 @@ async function taycanSubject(p) {
 {
   const p = await newPage();
   await p.goto(base + 'tests/lta-diagnostic.html');
+  await p.waitForSelector('#f:not([disabled])', { timeout: 15000 });
   await p.setInputFiles('#f', root + 'fixtures/lta-layout-fake-pii.pdf');
   await p.waitForFunction(() => document.getElementById('out').textContent.length > 200, null, { timeout: 15000 });
   const rep = await text(p, '#out');

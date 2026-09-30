@@ -173,11 +173,11 @@ t.ok('pace: Posted is shown as "days ago", never as time on market', /Posted .*d
 t.ok('pulse: active count is labelled "in this capture", never "cars sitting in the market"', /Active listings in this capture/.test(APP) && !/sitting in the market/i.test(APP));
 t.ok('pulse: price cuts are seller pressure, not low-demand proof; gone ≠ sold', /Price cuts show seller pressure, not proof of low demand/.test(APP) && /Gone ≠ sold unless SGCarMart marks it sold/.test(APP));
 t.ok('pulse: no numeric demand score in the read', !/score/i.test(JSON.stringify(R)) && Object.keys(R).every(k => k === 'read' || k === 'why'));
-t.ok('buffer: label is "Target profit buffer" (dollar amount, not a margin %)', /Target profit buffer/.test(APP) && !/Target gross profit|Target margin/.test(APP));
-t.ok('buffer: helper says the desk never changes the maximum', /Use a bigger buffer for a slower-moving car\. The desk never changes the maximum for you\./.test(APP));
-t.ok('buffer: softer → larger buffer, mixed → review holding risk (text only)', /softer asking evidence — consider a larger profit buffer/.test(APP) && /mixed evidence — review holding risk before setting your profit buffer/.test(APP));
+t.ok('target: label is "Target gross profit" (dollar amount)', /Target gross profit/.test(APP) && !/Target profit buffer|Target margin/.test(APP));
+t.ok('buffer: helper says the desk never changes the maximum', /Use a bigger target for a slower-moving car\. The desk never changes the maximum for you\./.test(APP));
+t.ok('buffer: softer → larger buffer, mixed → review holding risk (text only)', /softer asking evidence — consider a larger target gross profit/.test(APP) && /mixed evidence — review holding risk before setting your target gross profit/.test(APP));
 t.eq('buffer: economics() ignores market pulse (same inputs → same max, no pulse argument)', [M.economics({ resale: 330000, recon: null, other: null, profit: 5000, offer: null }).max, M.economics.length], [325000, 1]);
-t.ok('omv: caption says context only, never a valuation basis', /\(context only · not used in pricing maths\)/.test(APP) && /ARF <b class="num">'\+\(s\.arf[^\n]*· context only<\/div>/.test(APP) && !/factory spec/i.test(APP));
+t.ok('omv: caption says context only, never a valuation basis', /\(context only · not used in pricing maths\)/.test(APP) && /' · context only<\/div>'/.test(APP) && !/factory spec/i.test(APP));
 
 // ================================================================ I. Listing links from clipboard HTML (order + title agreement; never fabricated)
 // Synthetic clipboard HTML in SGCarMart's shape: per listing an image anchor (no text), a title anchor and a repeated

@@ -111,7 +111,7 @@ eq('v0.6: default ticks = listings 1–6', ticked.map(l => l.id), [1, 2, 3, 4, 5
 eq('v0.6: evidence (n, low, median, high, median dep)', [ev.n, ev.low, ev.med, ev.high, ev.depMed], [6, 106800, 114150, 138800, 25635]);
 const econ = M.economics({ resale: 112000, recon: 3500, other: 1500, profit: 8000, offer: 95000 });
 eq('v0.6: max acquisition + projected GP', [econ.max, econ.gp], [99000, 12000]);
-eq('v0.6: blanks count as $0 and are listed', M.economics({ resale: 112000, recon: null, other: 1500, profit: null, offer: null }), { max: 110500, gp: null, r0: 0, o0: 1500, p0: 0, blanks: ['reconditioning', 'target profit buffer'], provisional: true });
+eq('v0.6: blanks count as $0 and are listed', M.economics({ resale: 112000, recon: null, other: 1500, profit: null, offer: null }), { max: 110500, gp: null, r0: 0, o0: 1500, p0: 0, blanks: ['reconditioning', 'target gross profit'], provisional: true });
 eq('v0.6: no resale → no max', M.economics({ resale: null, recon: 1, other: 1, profit: 1, offer: 1 }).max, null);
 eq('evidence: unpriced (sold) rows are excluded from figures', M.evidence([...ticked, { price: null, dep: null, renewed: false, coeM: null }]).noPrice, 1);
 const dpool = M.buildPool(E200, DEMO);
