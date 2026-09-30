@@ -1343,7 +1343,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(s.yearMfg)line.push('Made '+s.yearMfg);
     line.push('Min. PARF benefit '+(s.parf!==null?'<b class="num">'+money(s.parf)+'</b>':'<span class="na">not stated</span>'));
     // Compact context line: only the values the LTA document actually gave. Context only — never in the maths.
-    var ctx=[];if(s.omv!==null)ctx.push('OMV <b class="num">'+money(s.omv)+'</b>');if(s.arf!==null)ctx.push('ARF <b class="num">'+money(s.arf)+'</b>');if(s.qp!==null)ctx.push('QP <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):''));
+    var ctx=[];if(s.omv!==null)ctx.push('OMV <b class="num">'+money(s.omv)+'</b>');if(s.arf!==null)ctx.push('ARF <b class="num">'+money(s.arf)+'</b>');if(s.qp!==null)ctx.push('COE (QP) <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):''));
     b.innerHTML=
       '<div class="who"><div class="eyebrow onDark">Appraising · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="model">'+esc(s.name)+'</div><div class="line">'+line.join(' · ')+'</div></div>'+
@@ -2030,7 +2030,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
-      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · QP '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
+      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · COE (QP) '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
     // 02 Exceptions first
     var ex=exceptionsList(mk,e,v);
     h+='<div class="step"><div class="no">02<br>CHECK</div><div><h2>Exceptions to review</h2>'+
