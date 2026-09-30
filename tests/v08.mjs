@@ -179,4 +179,47 @@ t.ok('buffer: softer → larger buffer, mixed → review holding risk (text only
 t.eq('buffer: economics() ignores market pulse (same inputs → same max, no pulse argument)', [M.economics({ resale: 330000, recon: null, other: null, profit: 5000, offer: null }).max, M.economics.length], [325000, 1]);
 t.ok('omv: caption says context only, never a valuation basis', /\(context only · not used in pricing maths\)/.test(APP) && /ARF <b class="num">'\+\(s\.arf[^\n]*· context only<\/div>/.test(APP) && !/factory spec/i.test(APP));
 
+// ================================================================ I. Listing links from clipboard HTML (order + title agreement; never fabricated)
+// Synthetic clipboard HTML in SGCarMart's shape: per listing an image anchor (no text), a title anchor and a repeated
+// title anchor — all the same /used-cars/info/ URL — plus dealer links (/used-cars/listing?dl=) and a promo card for another car.
+const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const infoUrl = (t, id, dl) => `https://www.sgcarmart.com/used-cars/info/${slug(t)}-${id}/?dl=${dl}`;
+const clipHtml = (titles, opt = {}) => titles.map((t, i) => {
+  const u = infoUrl(t, 1478212 + i, 2469 + i), dl = `https://www.sgcarmart.com/used-cars/listing?dl=${2469 + i}`;
+  const card = `<div><a href="${u}"><img alt="${t}"></a><a href="${u}"><span>${t}</span></a><a href="${dl}">Dealer</a><a href="${u}">${t}</a></div>`;
+  return (opt.promoAt === i ? `<div class="promo"><a href="${infoUrl('Toyota Voxy 2.0A', 1600000, 9000)}">Toyota Voxy 2.0A</a></div>` : '') + card;
+}).join('\n');
+const tTitles = TL.map(l => l.title);
+const html = clipHtml(tTitles, { promoAt: 3 });
+const links = M.listingLinks(html);
+t.eq('links: duplicate anchors collapse to one entry per listing, dealer links excluded', [links.length, links.filter(l => /listing\?dl=/.test(l.href)).length], [tTitles.length + 1, 0]);
+t.eq('links: text comes from the first non-empty anchor (image anchor has none)', links[0].text, tTitles[0]);
+t.eq('links: href kept exactly as read (dl query included, nothing rebuilt)', links[0].href, infoUrl(tTitles[0], 1478212, 2469));
+const TLk = M.parseSgcm(tx, { asAt: AS_AT, links }).listings;
+t.eq('links: every Taycan listing gets its own URL in document order; the Voxy promo is ignored', TLk.map(l => l.url), tTitles.map((tt, i) => infoUrl(tt, 1478212 + i, 2469 + i)));
+t.ok('links: sold listings keep their URL too', TLk.filter(l => l.sold).every(l => l.url));
+// E200: 20 listings on the page, most with the identical title. Exact one-to-one alignment still links each to its own URL.
+const eTitles = EL.map(l => l.title);
+t.ok('links: E200 page really has repeated identical titles', new Set(eTitles).size < eTitles.length);
+const ELk = M.parseSgcm(fixture('sgcm-e200-avantgarde-ctrl-a.txt'), { asAt: AS_AT, links: M.listingLinks(clipHtml(eTitles)) }).listings;
+t.ok('links: identical E200 titles → each listing linked in order, all URLs distinct', ELk.every((l, i) => l.url === infoUrl(eTitles[i], 1478212 + i, 2469 + i)) && new Set(ELk.map(l => l.url)).size === ELk.length);
+// Counts diverge (one title anchor missing) → repeated titles become ambiguous → no link; only titles unique on both sides link.
+const eLinksShort = M.listingLinks(clipHtml(eTitles)).filter((_, i) => i !== 1);
+const ELm = M.parseSgcm(fixture('sgcm-e200-avantgarde-ctrl-a.txt'), { asAt: AS_AT, links: eLinksShort }).listings;
+const count = {}; eTitles.forEach(x => { count[x] = (count[x] || 0) + 1; });
+t.ok('links: mismatch → repeated titles get no link (never guessed)', ELm.filter(l => count[l.title] > 1).every(l => l.url === null));
+t.ok('links: mismatch → a title unique on both sides still links; nothing else does', ELm.every(l => (count[l.title] === 1 && eLinksShort.filter(a => a.text === l.title).length === 1) ? l.url !== null : l.url === null));
+// Extra anchor carrying a listing title (promo for the same car) → same ambiguity rule.
+const extra = M.listingLinks(clipHtml(tTitles) + `<a href="${infoUrl(tTitles[0], 1999999, 1)}">${tTitles[0]}</a>`);
+const TLx = M.parseSgcm(tx, { asAt: AS_AT, links: extra }).listings;
+t.ok('links: extra same-title anchor → that title unlinked, unique titles still linked', TLx[0].url === null && TLx.filter(l => tTitles.filter(x => x === l.title).length === 1 && l.title !== tTitles[0]).every(l => l.url !== null));
+// No HTML on the clipboard (button paste, textarea, older browsers) → plain titles, nothing invented.
+t.ok('links: no clipboard HTML → url null on every listing', TL.every(l => l.url === null) && M.parseSgcm(tx, { asAt: AS_AT, links: [] }).listings.every(l => l.url === null));
+t.ok('links: only /used-cars/info/ URLs are ever kept', M.listingLinks('<a href="https://www.sgcarmart.com/used-cars/listing?dl=1">x</a><a href="https://evil.example/used-cars/info/x-1/">x</a><a href="/used-cars/info/x-2/">rel</a>').length === 0);
+// Snapshot round-trip keeps the URL; identity stays price-free and URL-free.
+const snapK = JSON.parse(JSON.stringify(M.snapshotFrom({ header: TP.header, listings: TLk }, { savedAt: '2026-09-30T09:00:00.000Z', asAt: AS_AT })));
+t.eq('links: snapshot keeps each listing URL', snapK.listings.map(l => l.url), TLk.map(l => l.url));
+t.ok('links: snapshot identity unchanged (no URL, no price)', snapK.listings.every(l => l.key === M.identity(l) && !/sgcarmart|info\//.test(l.key)));
+t.ok('links: snapshot without URLs still loads (url null)', JSON.parse(JSON.stringify(snap)).listings.every(l => l.url === null || l.url === undefined));
+
 process.exit(t.done() ? 1 : 0);

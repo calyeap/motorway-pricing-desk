@@ -344,6 +344,42 @@ async function taycanSubject(p) {
   await p.context().close();
 }
 
+// ---------------------------------------------------------------- H. Listing links: Ctrl+V with text/html → clickable titles; text-only → plain titles
+{
+  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const { loadCore } = await import('./lib.mjs');
+  const titles = loadCore().parseSgcm(TAYCAN, {}).listings.map(l => l.title);
+  const html = titles.map((t, i) => { const u = `https://www.sgcarmart.com/used-cars/info/${slug(t)}-${1478212 + i}/?dl=${2469 + i}`; return `<a href="${u}"><img alt=""></a><a href="${u}">${t}</a><a href="https://www.sgcarmart.com/used-cars/listing?dl=${2469 + i}">dealer</a>`; }).join('');
+  const pasteBoth = (page) => page.evaluate(([t, h]) => { const dt = new DataTransfer(); dt.setData('text/plain', t); dt.setData('text/html', h); document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true })); }, [TAYCAN, html]);
+  for (const vp of [{ width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+    const p = await newPage(vp);
+    const hits = []; p.on('request', r => { if (/sgcarmart/i.test(r.url())) hits.push(r.url()); });
+    await p.goto(base + 'motorway-pricing-desk.html');
+    await taycanSubject(p); await next(p);
+    await pasteBoth(p); await p.waitForSelector('#stPool:not([hidden])');
+    const tag = vp.width < 500 ? 'phone' : 'laptop';
+    const sel = vp.width < 500 ? '#poolCards a.cname' : '#poolBody a.name';
+    const a = await p.evaluate((sel) => [...document.querySelectorAll(sel)].map(x => ({ href: x.getAttribute('href'), target: x.getAttribute('target'), rel: x.getAttribute('rel'), ext: x.querySelector('.ext')?.textContent })), sel);
+    check(`H ${tag}: shortlist titles are links to the real /used-cars/info/ URLs`, a.length >= 4 && a.every(x => /^https:\/\/www\.sgcarmart\.com\/used-cars\/info\/porsche-taycan.*-\d+\/\?dl=\d+$/.test(x.href)), JSON.stringify(a[0]));
+    check(`H ${tag}: new tab, noopener noreferrer, ↗ affordance`, a.every(x => x.target === '_blank' && x.rel === 'noopener noreferrer' && x.ext === '↗'));
+    await next(p);
+    const d = await p.evaluate((sel) => document.querySelectorAll(sel).length, vp.width < 500 ? '#mcards a.cname' : '#rows a.name');
+    check(`H ${tag}: Comparison desk keeps the links`, d >= 3, String(d));
+    check(`H ${tag}: snapshot carries the URLs`, await p.evaluate(() => window.__mpd.state.listings.every(l => /used-cars\/info\//.test(l.url || ''))));
+    check(`H ${tag}: no request to SGCarMart was made`, hits.length === 0, hits.join(' '));
+    if (vp.width < 500) check('H phone: linked card title still ≥ 12 px text, tap target is the whole title', await p.evaluate(() => { const a = document.querySelector('#mcards a.cname'); const r = a.getBoundingClientRect(); return parseFloat(getComputedStyle(a.querySelector('.ext')).fontSize) >= 12 && r.height >= 14 && r.width >= 100; }));
+    await p.screenshot({ path: out + `v08-links-${vp.width}.png`, fullPage: false });
+    check(`H ${tag}: no page errors`, !p.errors.length, p.errors.join(' | '));
+    await p.context().close();
+  }
+  // Text-only paste (the other two paste paths) → plain titles, no anchors.
+  const p = await newPage();
+  await p.goto(base + 'motorway-pricing-desk.html');
+  await taycanSubject(p); await next(p); await paste(p, TAYCAN); await p.waitForSelector('#stPool:not([hidden])');
+  check('H: text-only paste → titles are plain text, no ↗', (await p.evaluate(() => document.querySelectorAll('#poolBody a.name, #poolBody .ext').length)) === 0 && (await p.evaluate(() => window.__mpd.state.listings.every(l => l.url === null))));
+  await p.context().close();
+}
+
 // ---------------------------------------------------------------- G. No auto-scraping / backend
 {
   const html = readFileSync(root + 'motorway-pricing-desk.html', 'utf8');

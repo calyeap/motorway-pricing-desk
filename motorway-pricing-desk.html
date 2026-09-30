@@ -194,6 +194,10 @@ table.led{border-collapse:collapse;width:100%}
 .led .d.amb{color:var(--amber)}
 .led .src{display:block;font-size:11px;color:var(--na);margin-top:2px}
 .led .name{display:block;font-size:14px;font-weight:600;color:var(--ink);line-height:1.25;white-space:normal;max-width:360px}
+a.name,a.cname{color:inherit;text-decoration:none}
+a.name:hover,a.cname:hover{text-decoration:underline;text-underline-offset:2px}
+.ext{font-family:var(--plex);font-size:12px;font-weight:400;color:var(--muted);margin-left:5px;vertical-align:1px}
+.led tr.off .ext{color:var(--delta)}
 .led .meta{display:block;font-size:12px;color:var(--unit);margin-top:3px;white-space:normal}
 .led .note{display:block;font-size:12px;margin-top:5px;color:var(--unit);white-space:normal;max-width:360px;line-height:1.4}
 .led .note.amb{color:var(--amber)}
@@ -774,7 +778,7 @@ var MPD = (function(){
       var l={
         id:idBase+listings.length+1, page:opt.page||1, title:title2, variant:shortName(title2),
         sold:sold, soldSource:sold?'Listing status: sold · View Similar':null,
-        adType:adType, dealer:dealer, posted:posted, fuel:fuel, desc:desc.join(' '),
+        adType:adType, dealer:dealer, posted:posted, fuel:fuel, desc:desc.join(' '), url:null,
         f:f, renewedSource:ren, status:alt?'needs_input':'ok',
         conflict:alt?{field:'variant',candidates:[{value:shortName(title2),source:title2},{value:shortName(alt),source:alt}]}:null,
         price:f.price.value, dep:f.dep.value, reg:reg, km:f.km.value, owners:f.owners.value, coeM:f.coeM.value, renewed:!!ren,
@@ -785,6 +789,7 @@ var MPD = (function(){
     });
     noise(cur,'Footer');
     var sold=listings.filter(function(l){return l.sold}).length;
+    if(opt.links&&opt.links.length)attachLinks(listings,opt.links);
     return {listings:listings,ignored:ignored,header:header,
       stats:{listings:listings.length,sold:sold,active:listings.length-sold,needsInput:listings.filter(function(l){return l.status==='needs_input'}).length,ignoredBlocks:ignored.length,chars:String(text||'').length},
       fieldsInSource:['price','dep','reg','km','owners','coeM']};
@@ -1069,6 +1074,36 @@ var MPD = (function(){
     return {mentions:mentions,facts:facts,importOrigReg:m?parseDate(m[1]):null,text:d};
   }
 
+  // ---------- Listing links from the clipboard HTML (Ctrl+V only). Real /used-cars/info/ URLs as read; never built or searched. ----------
+  var RX_INFO=/^https?:\/\/(www\.)?sgcarmart\.com\/used-cars\/info\/[^\s"'<>]*?-(\d+)\/?(\?[^\s"'<>]*)?$/i;
+  function htmlText(h){return String(h||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;|&apos;/g,'’').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim()}
+  // One entry per listing ID, in document order. Duplicate anchors for the same listing (image + title) collapse into one; the first non-empty text wins.
+  function listingLinks(html){
+    var out=[],byId={},re=/<a\b[^>]*\bhref\s*=\s*(["'])([^"']*)\1[^>]*>([\s\S]*?)<\/a>/gi,m;
+    while((m=re.exec(String(html||'')))){
+      var href=m[2].replace(/&amp;/g,'&'),id=RX_INFO.exec(href);
+      if(!id)continue;                                   // dealer / search / nav links are not listings
+      var text=htmlText(m[3]),e=byId[id[2]];
+      if(!e){e={id:id[2],href:href,text:text};byId[id[2]]=e;out.push(e)}
+      else if(!e.text&&text)e.text=text;
+    }
+    return out;
+  }
+  // Order + title agreement. Anchors whose text matches no listing title (promos for other cars) are ignored.
+  // Exact one-to-one alignment → every listing gets its link. Anything else → only titles that are unique on both sides.
+  function attachLinks(listings,links){
+    var titles={};listings.forEach(function(l){var t=norm(l.title);titles[t]=(titles[t]||0)+1});
+    var A=links.filter(function(a){return titles[norm(a.text)]});
+    var aligned=A.length===listings.length&&listings.every(function(l,i){return norm(A[i].text)===norm(l.title)});
+    if(aligned){listings.forEach(function(l,i){l.url=A[i].href});return}
+    var seen={};A.forEach(function(a){var t=norm(a.text);seen[t]=(seen[t]||0)+1});
+    listings.forEach(function(l){
+      var t=norm(l.title);
+      if(titles[t]!==1||seen[t]!==1)return;               // repeated title (e.g. E200 Avantgarde ×66) → ambiguous → no link
+      l.url=A.filter(function(a){return norm(a.text)===t})[0].href;
+    });
+  }
+
   // ---------- Manual market snapshots (human captures, software compares). No subject/customer data. ----------
   function norm(s){return String(s||'').toLowerCase().replace(/^sold(?=\S)/,'').replace(/\s+/g,' ').trim()}
   // Stable-ish identity: title + registration date + dealer. Never price. Mileage is the secondary check.
@@ -1078,7 +1113,7 @@ var MPD = (function(){
     opt=opt||{};
     return {kind:'mpd-market-snapshot',version:1,savedAt:opt.savedAt||new Date().toISOString(),capturedFor:isoDay(opt.asAt||today()),
       search:parse.header.search,sgcmTotal:parse.header.total,sort:parse.header.sort,captured:parse.listings.length,pages:opt.pages||1,
-      listings:parse.listings.map(function(l){return {key:identity(l),title:l.title,reg:l.reg,dealer:l.dealer,posted:l.posted,km:l.km,owners:l.owners,coeM:l.coeM,price:l.price,dep:l.dep,sold:!!l.sold,own:!!l.own,adType:l.adType||[]}})};
+      listings:parse.listings.map(function(l){return {key:identity(l),title:l.title,reg:l.reg,dealer:l.dealer,posted:l.posted,km:l.km,owners:l.owners,coeM:l.coeM,price:l.price,dep:l.dep,sold:!!l.sold,own:!!l.own,adType:l.adType||[],url:l.url||null}})};
   }
   function fullCoverage(s){return s.sgcmTotal!==null&&s.sgcmTotal!==undefined&&s.captured>=s.sgcmTotal}
   function diffSnapshots(prev,cur){
@@ -1147,7 +1182,8 @@ var MPD = (function(){
     LTA_FIELDS:LTA_FIELDS,parseLta:parseLta,itemsToLines:itemsToLines,subjectFrom:subjectFrom,titleCase:titleCase,
     buildPool:buildPool,familyKey:familyKey,evidence:evidence,economics:economics,F:F,
     isOwnStock:isOwnStock,variantClass:variantClass,defaultInclude:defaultInclude,whyComp:whyComp,market:market,carStory:carStory,
-    identity:identity,snapshotFrom:snapshotFrom,diffSnapshots:diffSnapshots,marketRead:marketRead};
+    identity:identity,snapshotFrom:snapshotFrom,diffSnapshots:diffSnapshots,marketRead:marketRead,
+    listingLinks:listingLinks,attachLinks:attachLinks};
 })();
 if(typeof module!=='undefined')module.exports=MPD;
 </script>
@@ -1456,9 +1492,9 @@ if(typeof module!=='undefined')module.exports=MPD;
   }
 
   // ---------- 1b/1c · SGCarMart paste + processing ----------
-  function onPasteText(text,append){
+  function onPasteText(text,append,html){
     var msg=$('pasteMsg');msg.className='msg';
-    var res=M.parseSgcm(text,{asAt:S.asAt,idBase:append?S.listings.length:0,page:append?S.pages+1:1});
+    var res=M.parseSgcm(text,{asAt:S.asAt,idBase:append?S.listings.length:0,page:append?S.pages+1:1,links:M.listingLinks(html)});
     if(!res.listings.length){
       msg.className='msg amb';msg.textContent='No vehicle listings were found in that paste. On the SGCarMart results page press Ctrl + A, then Ctrl + C, and paste again.';
       if(S.stage==='pool')alert('No vehicle listings were found in that paste.');
@@ -1512,9 +1548,10 @@ if(typeof module!=='undefined')module.exports=MPD;
   document.addEventListener('paste',function(e){
     if(S.view!=='import'||(S.stage!=='paste'&&S.stage!=='pool'))return;
     if(e.target&&e.target.id!=='pasteBox'&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;
-    var t=(e.clipboardData||window.clipboardData).getData('text/plain');if(!t)return;
+    var cd=e.clipboardData||window.clipboardData,t=cd.getData('text/plain');if(!t)return;
+    var h='';try{h=cd.getData('text/html')||''}catch(_){}
     e.preventDefault();$('pasteBox').value='';
-    onPasteText(t,S.stage==='pool'&&S.appendNext);S.appendNext=false;
+    onPasteText(t,S.stage==='pool'&&S.appendNext,h);S.appendNext=false;
   });
   $('demoRes').addEventListener('click',function(){
     S.listings=DEMO_L.map(function(d){
@@ -1805,7 +1842,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     return '<button type="button" class="ck'+(on?' on':(t==='aside'||(t==='short'&&!on))?' no':'')+'" data-tog="'+l.id+'" aria-pressed="'+on+'" aria-label="'+(on?'Included — untick':'Not included — tick')+' listing '+l.id+'"></button>';
   }
   function nameHtml(l){
-    if(l.status!=='needs_input')return '<span class="name">'+esc(l.variant)+'</span>';
+    if(l.status!=='needs_input')return l.url?'<a class="name" href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer">'+esc(l.variant)+'<span class="ext" aria-label="opens SGCarMart">↗</span></a>':'<span class="name">'+esc(l.variant)+'</span>';
     return '<span class="name">'+esc(M.shortName(l.conflict.candidates[0].source).split(' ')[0])+' <span class="amb">(variant unclear)</span></span><span class="cands">'+l.conflict.candidates.map(function(c,i){return '<button class="choice" type="button" data-pickv="'+l.id+'" data-i="'+i+'">'+esc(c.value)+'</button>'}).join('')+'</span>';
   }
   function row(l,depMed,ctx){
@@ -1836,7 +1873,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var tog=ctx==='desk'?'<label class="tapck"><input type="checkbox" data-id="'+l.id+'"'+(on?' checked':'')+' aria-label="Include listing '+l.id+'" style="width:22px;height:22px;accent-color:var(--sage)"></label>':
       l.status==='needs_input'?'<span class="tapck"><span class="ck rev"></span></span>':'<button type="button" class="tapck" data-tog="'+l.id+'" aria-pressed="'+on+'" aria-label="'+(on?'Included — untick':'Not included — tick')+' listing '+l.id+'"><span class="ck'+(on?' on':' no')+'"></span></button>';
     var notes=notesList(l,depMed,ctx).map(noteHtml).join('');
-    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(postedStr(l)?' · '+postedStr(l):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
+    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):l.url?'<a class="cname" href="'+esc(l.url)+'" target="_blank" rel="noopener noreferrer"><b>'+esc(l.variant||'Variant unclear')+'</b><span class="ext" aria-label="opens SGCarMart">↗</span></a>':'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(postedStr(l)?' · '+postedStr(l):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
       notes+
       '<div class="g">'+
       cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':dd===0?'at median':(dd>0?'+':'')+kAbbr(dd,true),dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
