@@ -1,0 +1,164 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "A-Decision.dc.html": {
+      "h": 1700,
+      "title": "A · Decision Summary",
+      "w": 1440,
+      "x": 1520,
+      "y": 4200
+    },
+    "A-Desk.dc.html": {
+      "h": 1120,
+      "title": "A · Comparison desk",
+      "w": 1440,
+      "x": 0,
+      "y": 4200
+    },
+    "A-Details.dc.html": {
+      "h": 1160,
+      "title": "A · Anatomy, palette, type",
+      "w": 1440,
+      "x": 3040,
+      "y": 4200
+    },
+    "B-Decision.dc.html": {
+      "h": 1520,
+      "title": "B · Decision Summary",
+      "w": 1440,
+      "x": 1520,
+      "y": 6500
+    },
+    "B-Desk.dc.html": {
+      "h": 1120,
+      "title": "B · Comparison desk",
+      "w": 1440,
+      "x": 0,
+      "y": 6500
+    },
+    "B-Details.dc.html": {
+      "h": 1320,
+      "title": "B · Anatomy, palette, type",
+      "w": 1440,
+      "x": 3040,
+      "y": 6500
+    },
+    "A1-Import-Empty.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 860,
+      "title": "FINAL · 1 Import — empty state"
+    },
+    "A2-Import-Processing.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 860,
+      "title": "FINAL · 2 Import — paste / processing"
+    },
+    "A3-Import-Pool.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1240,
+      "title": "FINAL · 3 Parsed summary + suggested shortlist"
+    },
+    "A4-Import-States.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 1480,
+      "title": "FINAL · 4 Candidate review · exact / unusual / needs input / not stated / set aside"
+    },
+    "A5-Comparison.dc.html": {
+      "x": 0,
+      "y": 1860,
+      "w": 1440,
+      "h": 1120,
+      "title": "FINAL · 5 Comparison desk"
+    },
+    "A6-Decision.dc.html": {
+      "x": 1520,
+      "y": 1860,
+      "w": 1440,
+      "h": 1720,
+      "title": "FINAL · 6 Decision Summary"
+    },
+    "A7-Mobile.dc.html": {
+      "x": 3040,
+      "y": 1860,
+      "w": 1440,
+      "h": 1100,
+      "title": "FINAL · 7 Responsive / mobile"
+    },
+    "A8-Tokens.dc.html": {
+      "x": 4560,
+      "y": 1860,
+      "w": 1440,
+      "h": 1120,
+      "title": "FINAL · 8 Tokens · type · spacing · colour · states · motion"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-30T07:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "tf": {
+      "kind": "title1",
+      "maxW": 5960,
+      "x": 0,
+      "y": -300,
+      "text": "FINAL LOCK — Direction A · Showroom Ledger · import → compare → decide",
+      "w": 240
+    },
+    "tf2": {
+      "kind": "title1",
+      "maxW": 5960,
+      "x": 0,
+      "y": 1560,
+      "text": "FINAL LOCK — Comparison · Decision Summary · mobile · tokens",
+      "w": 240
+    },
+    "ta": {
+      "kind": "title1",
+      "maxW": 4480,
+      "x": 0,
+      "y": 3900,
+      "text": "Exploration (superseded) — Direction A first pass",
+      "w": 240
+    },
+    "tb": {
+      "kind": "title1",
+      "maxW": 4480,
+      "x": 0,
+      "y": 6200,
+      "text": "Exploration (not selected) — Direction B · Night Desk",
+      "w": 240
+    }
+  },
+  "order": [
+    "A1-Import-Empty.dc.html",
+    "A2-Import-Processing.dc.html",
+    "A3-Import-Pool.dc.html",
+    "A4-Import-States.dc.html",
+    "A5-Comparison.dc.html",
+    "A6-Decision.dc.html",
+    "A7-Mobile.dc.html",
+    "A8-Tokens.dc.html",
+    "A-Desk.dc.html",
+    "A-Decision.dc.html",
+    "A-Details.dc.html",
+    "B-Desk.dc.html",
+    "B-Decision.dc.html",
+    "B-Details.dc.html"
+  ],
+  "pages": [],
+  "title": "Motorway Pricing Desk — Direction A Final Lock"
+}

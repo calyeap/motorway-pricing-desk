@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Design tokens, type, spacing, semantic colour, states, motion</title>
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#F4F4F2;color:#1B1B1B;font-size:14px;line-height:1.4}
+a{color:#1B1B1B}a:hover{color:#BC151B}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mont{font-family:Montserrat,system-ui,sans-serif}
+.eyebrow{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6B6B6B}
+.eyebrow.onDark{color:#A9A9A6}
+.h2{font-family:Montserrat,system-ui,sans-serif;font-size:15px;font-weight:700;margin:0}
+.na{color:#9B9B98;font-style:italic}
+.nav a{font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;text-decoration:none;color:#6B6B6B;padding:18px 2px 16px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+.nav a.on{color:#1B1B1B;border-bottom-color:#BC151B}
+.nav a.done{color:#1B1B1B}
+.nav .st{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B9B6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#6B6B6B;font-family:"IBM Plex Sans",sans-serif}
+.nav a.on .st{border-color:#1B1B1B;color:#1B1B1B}
+.nav a.done .st{border-color:#3F6B4C;background:#3F6B4C;color:#fff}
+.btn{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;border-radius:2px;padding:10px 18px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#BC151B;color:#fff}
+.btn.primary:hover{background:#A51618}
+.btn.secondary{background:#fff;color:#1B1B1B;border-color:#1B1B1B}
+.btn.ghost{background:none;color:#6B6B6B;border-color:#D8D8D6}
+.link{font-size:12px;color:#6B6B6B;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1B1B1B;background:#fff;border:1px solid #D8D8D6;border-radius:2px;padding:6px 10px;font-family:inherit;cursor:pointer}
+.pill b{font-weight:500}
+table{border-collapse:collapse;width:100%}
+th{font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;text-align:left;padding:10px 12px 8px;border-bottom:1px solid #D8D8D6;white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+th.sec{color:#B0B0AD;font-weight:500;text-transform:none;letter-spacing:0;font-size:11px}
+td{padding:10px 12px;border-bottom:1px solid #E6E6E3;vertical-align:top;white-space:nowrap}
+td .v{display:block;font-size:15px;font-weight:500;color:#1B1B1B;line-height:1.25}
+td .v .u{font-size:12px;font-weight:400;color:#7A7A77;margin-left:2px}
+td .v.price{font-weight:600;font-size:16px}
+td .d{display:block;font-size:12px;color:#8A8A87;margin-top:3px;line-height:1.2}
+td .d.amb{color:#9A6412}
+td .name{display:block;font-size:14px;font-weight:600;color:#1B1B1B;line-height:1.25}
+td .meta{display:block;font-size:12px;color:#7A7A77;margin-top:3px}
+td .note{display:block;font-size:12px;margin-top:5px;color:#7A7A77;white-space:normal;max-width:330px;line-height:1.35}
+td .note.amb{color:#9A6412}
+td .note.sage{color:#3F6B4C}
+tr.ref td{background:#F7F7F5;border-bottom:1px solid #D8D8D6}
+tr.ref td:first-child{box-shadow:inset 3px 0 0 #BC151B}
+tr.off td{color:#8A8A87}
+tr.off td .v,tr.off td .name{color:#8A8A87;font-weight:500}
+tr.off td .v.price{font-weight:600}
+tr.off td .d{color:#B0B0AD}
+tr.off td .note.amb{color:#9A6412}
+tr.rev td{background:#FDFAF2}
+tr.tier td{background:#F7F7F5;padding:7px 12px;font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;border-bottom:1px solid #D8D8D6}
+td.state{width:40px;padding-right:0}
+.ck{width:18px;height:18px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #B9B9B6;background:#fff}
+.ck.on{background:#3F6B4C;border-color:#3F6B4C}
+.ck.rev{border-color:#C98A1F;background:#fff}
+.ck.no{border-color:#D8D8D6;background:#F4F4F2}
+input[type=checkbox]{width:16px;height:16px;margin:2px 0 0;accent-color:#3F6B4C}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #EDEDEA;font-size:13.5px}
+.kv .k{color:#6B6B6B}
+.kv .n{font-weight:500}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 14px 112px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #EDEDEA}
+.fld label{font-size:13.5px;color:#1B1B1B;line-height:1.25}
+.fld .op{color:#9B9B98;text-align:center;font-size:14px}
+.fld input{width:100%;box-sizing:border-box;text-align:right;font:inherit;font-size:15px;font-weight:500;padding:6px 8px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;font-variant-numeric:tabular-nums}
+.fld input:focus{outline:2px solid #1B1B1B;outline-offset:1px}
+.sub{font-size:12px;color:#7A7A77;line-height:1.4}
+.txt{font:inherit;font-size:13px;padding:8px 10px 8px 32px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;width:100%;box-sizing:border-box}
+.tab{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6B6B6B;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab.on{color:#1B1B1B;border-bottom-color:#1B1B1B}
+.tab .c{font-family:"IBM Plex Sans",sans-serif;font-weight:500;color:#8A8A87;font-variant-numeric:tabular-nums}
+.tab.on .c{color:#1B1B1B}
+.dot{width:7px;height:7px;border-radius:50%;background:#B9B9B6;display:inline-block}
+.dot.amb{background:#C98A1F}.dot.sage{background:#3F6B4C}.dot.grey{background:#B9B9B6}
+
+.card{background:#FFFFFF;border:1px solid #D8D8D6;padding:18px 20px;box-sizing:border-box}
+.spec{font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#BC151B;margin-bottom:12px}
+.sw{display:flex;gap:10px;align-items:flex-start}
+.sw .c{width:44px;height:44px;border:1px solid rgba(0,0,0,.08);flex-shrink:0}
+.sw .l{font-size:12px;color:#4A4A48;line-height:1.35}
+.sw .l b{display:block;font-weight:600;color:#1B1B1B}
+.sw .l code{font-family:"IBM Plex Sans",sans-serif;color:#6B6B6B}
+.ts{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;align-items:baseline}
+.ts .m{font-size:11px;color:#6B6B6B;font-variant-numeric:tabular-nums}
+.sp{display:flex;align-items:flex-end;gap:14px}
+.sp div{background:#262626}
+.sp span{font-size:11px;color:#6B6B6B;display:block;margin-top:4px;text-align:center}
+.st{display:grid;grid-template-columns:36px 1fr;gap:8px 12px;align-items:center;font-size:13px}
+.st .k{font-size:12px;color:#6B6B6B}
+</style>
+</head>
+<body>
+
+
+<div style="width:1440px;height:1120px;box-sizing:border-box;display:flex;flex-direction:column;background:#F4F4F2;overflow:hidden">
+
+  <div style="padding:36px 40px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:24px;grid-auto-rows:min-content">
+    <div class="card" style="grid-column:span 5">
+      <div class="spec">Design tokens · colour</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px">
+        <div class="sw"><div class="c" style="background:#F4F4F2"></div><div class="l"><b>ground</b><code>#F4F4F2</code> page</div></div>
+        <div class="sw"><div class="c" style="background:#FFFFFF"></div><div class="l"><b>surface</b><code>#FFFFFF</code> panels, table</div></div>
+        <div class="sw"><div class="c" style="background:#F7F7F5"></div><div class="l"><b>surface‑sunk</b><code>#F7F7F5</code> baseline row, tier rows</div></div>
+        <div class="sw"><div class="c" style="background:#262626"></div><div class="l"><b>charcoal</b><code>#262626</code> subject stage, payoff</div></div>
+        <div class="sw"><div class="c" style="background:#1B1B1B"></div><div class="l"><b>ink</b><code>#1B1B1B</code> text, focus ring, active input</div></div>
+        <div class="sw"><div class="c" style="background:#4A4A48"></div><div class="l"><b>ink‑2</b><code>#4A4A48</code> body on light</div></div>
+        <div class="sw"><div class="c" style="background:#6B6B6B"></div><div class="l"><b>muted</b><code>#6B6B6B</code> labels, eyebrows · 5.3:1</div></div>
+        <div class="sw"><div class="c" style="background:#8A8A87"></div><div class="l"><b>delta‑grey</b><code>#8A8A87</code> normal deltas, excluded text · 3.4:1 (12 px, non‑essential)</div></div>
+        <div class="sw"><div class="c" style="background:#D8D8D6"></div><div class="l"><b>hairline</b><code>#D8D8D6</code> borders (site card border)</div></div>
+        <div class="sw"><div class="c" style="background:#EDEDEA"></div><div class="l"><b>rule‑soft</b><code>#EDEDEA</code> in‑panel dividers</div></div>
+        <div class="sw"><div class="c" style="background:#BC151B"></div><div class="l"><b>red</b><code>#BC151B</code> brand · active tab · primary button · subject rule · decision rule</div></div>
+        <div class="sw"><div class="c" style="background:#9A6412"></div><div class="l"><b>amber</b><code>#9A6412</code> review text · 4.9:1 &nbsp;·&nbsp; dot <code>#C98A1F</code> · tint <code>#FDFAF2</code></div></div>
+        <div class="sw"><div class="c" style="background:#3F6B4C"></div><div class="l"><b>sage</b><code>#3F6B4C</code> included tick · parsed OK · confirm · 5.6:1</div></div>
+        <div class="sw"><div class="c" style="background:#A9A9A6"></div><div class="l"><b>on‑dark muted</b><code>#A9A9A6</code> captions on charcoal · 5.9:1</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:span 4">
+      <div class="spec">Semantic colour rules</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;line-height:1.45">
+        <div><b style="color:#BC151B">Red</b> — brand, the active step, the one primary button on a screen, the subject rule, the decision block rule. Never on data.</div>
+        <div><b style="color:#9A6412">Amber</b> — look here: review deltas, needs‑attention rows, unticked‑by‑default reasons, the Advisory label. Never means “bad”.</div>
+        <div><b style="color:#3F6B4C">Sage</b> — confirmed: included tick, completed step, parsed‑OK count, Confirm action. Never means “good deal”.</div>
+        <div><b style="color:#6B6B6B">Grey</b> — normal deltas, secondary fields, excluded / set‑aside rows, Not stated.</div>
+        <div><b style="color:#262626">Charcoal</b> — deterministic: subject stage and Maximum acquisition price. Nothing else is filled charcoal.</div>
+        <div style="border-top:1px solid #EDEDEA;padding-top:8px" class="sub">No green/red for price judgement. No gradients, no glow, no shadows. Excluded = 60 % text tone, never opacity on inputs.</div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:span 3">
+      <div class="spec">Row states</div>
+      <div class="st">
+        <span class="ck on" aria-label="Included"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span><div>Included <span class="k">· counted in evidence · sage tick</span></div>
+        <span class="ck" aria-label="Not included"></span><div>Available <span class="k">· parsed, not in shortlist · empty box</span></div>
+        <span class="ck rev" aria-label="Needs review"><svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#C98A1F"/></svg></span><div>Needs dealer input <span class="k">· conflict or ambiguity · amber dot · row tint #FDFAF2</span></div>
+        <span class="ck no" aria-label="Excluded"><svg width="10" height="2" viewBox="0 0 10 2" aria-hidden="true"><path d="M0 1h10" stroke="#9B9B98" stroke-width="2"/></svg></span><div>Unticked / set aside <span class="k">· grey dash · text at delta‑grey</span></div>
+        <span style="display:inline-block;width:18px;height:18px;box-shadow:inset 3px 0 0 #BC151B;background:#F7F7F5"></span><div>This car <span class="k">· baseline row · red rule · sunk fill</span></div>
+      </div>
+      <div class="sub" style="margin-top:12px">State lives in the first column and one note line under the name. An exact-but-unusual value keeps its normal state and gets an amber <i>Unusual — review</i> note with the source text; no click needed. No badges, no cell fills.</div>
+    </div>
+
+    <div class="card" style="grid-column:span 7">
+      <div class="spec">Typography scale</div>
+      <div class="ts">
+        <span class="m">payoff · 44 / 40</span><span class="mont num" style="font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1.05">$99,000</span>
+        <span class="m">model name · 34 / 28</span><span class="mont" style="font-size:28px;font-weight:700;letter-spacing:-.01em;line-height:1.15">Mercedes-Benz E200 Avantgarde</span>
+        <span class="m">key figure · 22</span><span class="mont num" style="font-size:22px;font-weight:700">$114,150</span>
+        <span class="m">section · 17 / 15</span><span class="mont" style="font-size:17px;font-weight:700">Comparable listings</span>
+        <span class="m">price · 16 · 600</span><span class="num" style="font-size:16px;font-weight:600">$107,500</span>
+        <span class="m">value · 15 · 500</span><span class="num" style="font-size:15px;font-weight:500">96,000 <span style="font-size:12px;font-weight:400;color:#7A7A77">km</span></span>
+        <span class="m">body · 14 · 400</span><span style="font-size:14px">Listing 4 shows lower depreciation than the selected comps.</span>
+        <span class="m">secondary · 13</span><span style="font-size:13px;color:#6B6B6B">6 of 8 selected · sorted by asking</span>
+        <span class="m">delta / caption · 12</span><span class="num" style="font-size:12px;color:#8A8A87">+24,000 &nbsp;<span style="color:#9A6412">−$3,235 vs median</span></span>
+        <span class="m">eyebrow · 11 · caps</span><span class="eyebrow">Maximum acquisition price</span>
+      </div>
+      <div class="sub" style="margin-top:14px;border-top:1px solid #EDEDEA;padding-top:10px"><b style="color:#1B1B1B">Montserrat 700</b> only for payoff, model name, key figures, section titles and eyebrows (600). <b style="color:#1B1B1B">IBM Plex Sans 400/500/600</b> for everything working, with <code>font-variant-numeric: tabular-nums</code> on every number. Line‑height 1.4 body, 1.05–1.15 display.</div>
+    </div>
+
+    <div class="card" style="grid-column:span 5">
+      <div class="spec">Spacing · surfaces · motion</div>
+      <div class="sp"><div style="width:4px;height:4px"><span>4</span></div><div style="width:8px;height:8px"><span>8</span></div><div style="width:12px;height:12px"><span>12</span></div><div style="width:16px;height:16px"><span>16</span></div><div style="width:24px;height:24px"><span>24</span></div><div style="width:32px;height:32px"><span>32</span></div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;line-height:1.45;margin-top:22px">
+        <div><b>Page</b> margin 32 · gutter 24 · rail 352 px · reading column 920 px.</div>
+        <div><b>Panels</b> padding 16–18 · one 1 px hairline · radius 0. <b>Inputs / buttons</b> radius 2.</div>
+        <div><b>Table</b> cell padding 10 × 12 · value line 1.25 · delta 3 px below · rows ≈ 52 px (72 with a note).</div>
+        <div><b>Subject stage</b> 22 px padding desktop, 14 px on import screens.</div>
+        <div style="border-top:1px solid #EDEDEA;padding-top:8px"><b>Motion</b> — 120 ms ease‑out on hover/focus colour only. Paste: progress bar + checklist ticks, 160 ms each, no spinners beyond the one ring. Rows fade in from 0 → 1 (200 ms) once, no slide. Recalculation is instant; changed figures don't flash. Tick/untick updates the rail without animation. <code>prefers-reduced-motion</code> removes all of it.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

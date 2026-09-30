@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Import — candidate review, missing data, needs review, set aside</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#F4F4F2;color:#1B1B1B;font-size:14px;line-height:1.4}
+a{color:#1B1B1B}a:hover{color:#BC151B}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mont{font-family:Montserrat,system-ui,sans-serif}
+.eyebrow{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6B6B6B}
+.eyebrow.onDark{color:#A9A9A6}
+.h2{font-family:Montserrat,system-ui,sans-serif;font-size:15px;font-weight:700;margin:0}
+.na{color:#9B9B98;font-style:italic}
+.nav a{font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;text-decoration:none;color:#6B6B6B;padding:18px 2px 16px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+.nav a.on{color:#1B1B1B;border-bottom-color:#BC151B}
+.nav a.done{color:#1B1B1B}
+.nav .st{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B9B6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#6B6B6B;font-family:"IBM Plex Sans",sans-serif}
+.nav a.on .st{border-color:#1B1B1B;color:#1B1B1B}
+.nav a.done .st{border-color:#3F6B4C;background:#3F6B4C;color:#fff}
+.btn{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;border-radius:2px;padding:10px 18px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#BC151B;color:#fff}
+.btn.primary:hover{background:#A51618}
+.btn.secondary{background:#fff;color:#1B1B1B;border-color:#1B1B1B}
+.btn.ghost{background:none;color:#6B6B6B;border-color:#D8D8D6}
+.link{font-size:12px;color:#6B6B6B;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1B1B1B;background:#fff;border:1px solid #D8D8D6;border-radius:2px;padding:6px 10px;font-family:inherit;cursor:pointer}
+.pill b{font-weight:500}
+table{border-collapse:collapse;width:100%}
+th{font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;text-align:left;padding:10px 12px 8px;border-bottom:1px solid #D8D8D6;white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+th.sec{color:#B0B0AD;font-weight:500;text-transform:none;letter-spacing:0;font-size:11px}
+td{padding:10px 12px;border-bottom:1px solid #E6E6E3;vertical-align:top;white-space:nowrap}
+td .v{display:block;font-size:15px;font-weight:500;color:#1B1B1B;line-height:1.25}
+td .v .u{font-size:12px;font-weight:400;color:#7A7A77;margin-left:2px}
+td .v.price{font-weight:600;font-size:16px}
+td .d{display:block;font-size:12px;color:#8A8A87;margin-top:3px;line-height:1.2}
+td .d.amb{color:#9A6412}
+td .name{display:block;font-size:14px;font-weight:600;color:#1B1B1B;line-height:1.25}
+td .meta{display:block;font-size:12px;color:#7A7A77;margin-top:3px}
+td .note{display:block;font-size:12px;margin-top:5px;color:#7A7A77;white-space:normal;max-width:330px;line-height:1.35}
+td .note.amb{color:#9A6412}
+td .note.sage{color:#3F6B4C}
+tr.ref td{background:#F7F7F5;border-bottom:1px solid #D8D8D6}
+tr.ref td:first-child{box-shadow:inset 3px 0 0 #BC151B}
+tr.off td{color:#8A8A87}
+tr.off td .v,tr.off td .name{color:#8A8A87;font-weight:500}
+tr.off td .v.price{font-weight:600}
+tr.off td .d{color:#B0B0AD}
+tr.off td .note.amb{color:#9A6412}
+tr.rev td{background:#FDFAF2}
+tr.tier td{background:#F7F7F5;padding:7px 12px;font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;border-bottom:1px solid #D8D8D6}
+td.state{width:40px;padding-right:0}
+.ck{width:18px;height:18px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #B9B9B6;background:#fff}
+.ck.on{background:#3F6B4C;border-color:#3F6B4C}
+.ck.rev{border-color:#C98A1F;background:#fff}
+.ck.no{border-color:#D8D8D6;background:#F4F4F2}
+input[type=checkbox]{width:16px;height:16px;margin:2px 0 0;accent-color:#3F6B4C}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #EDEDEA;font-size:13.5px}
+.kv .k{color:#6B6B6B}
+.kv .n{font-weight:500}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 14px 112px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #EDEDEA}
+.fld label{font-size:13.5px;color:#1B1B1B;line-height:1.25}
+.fld .op{color:#9B9B98;text-align:center;font-size:14px}
+.fld input{width:100%;box-sizing:border-box;text-align:right;font:inherit;font-size:15px;font-weight:500;padding:6px 8px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;font-variant-numeric:tabular-nums}
+.fld input:focus{outline:2px solid #1B1B1B;outline-offset:1px}
+.sub{font-size:12px;color:#7A7A77;line-height:1.4}
+.txt{font:inherit;font-size:13px;padding:8px 10px 8px 32px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;width:100%;box-sizing:border-box}
+.tab{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6B6B6B;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab.on{color:#1B1B1B;border-bottom-color:#1B1B1B}
+.tab .c{font-family:"IBM Plex Sans",sans-serif;font-weight:500;color:#8A8A87;font-variant-numeric:tabular-nums}
+.tab.on .c{color:#1B1B1B}
+.dot{width:7px;height:7px;border-radius:50%;background:#B9B9B6;display:inline-block}
+.dot.amb{background:#C98A1F}.dot.sage{background:#3F6B4C}.dot.grey{background:#B9B9B6}
+</style>
+</helmet>
+<div style="width:1440px;height:1480px;box-sizing:border-box;display:flex;flex-direction:column;background:#F4F4F2;overflow:hidden">
+
+  <div style="height:56px;box-sizing:border-box;background:#FFFFFF;border-bottom:1px solid #D8D8D6;display:flex;align-items:center;padding:0 32px;gap:40px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:15px;font-weight:700;letter-spacing:.06em;color:#201D1D">MOTORWAY</span><span style="width:1px;height:18px;background:#D8D8D6;margin:0 4px"></span><span class="mont" style="font-size:13px;font-weight:500;color:#6B6B6B">Pricing Desk</span></div>
+    <nav class="nav" style="display:flex;gap:28px;height:56px;align-items:stretch" aria-label="Workflow"><a class="on" href="A1-Import-Empty.dc.html" aria-current="page"><span class="st">1</span>Import</a><a class="" href="A5-Comparison.dc.html"><span class="st">2</span>Comparison</a><a class="" href="A6-Decision.dc.html"><span class="st">3</span>Decision Summary</a></nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;color:#6B6B6B"><span>Concept V0.7 · sample data</span><span style="width:28px;height:28px;border-radius:50%;background:#262626;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600" aria-label="Signed in as C.Y.">CY</span></div>
+  </div>
+  <div style="background:#262626;color:#FFFFFF;padding:14px 32px;display:flex;align-items:flex-end;gap:48px;flex-shrink:0">
+    <div style="border-left:3px solid #BC151B;padding-left:16px;min-width:430px">
+      <div class="eyebrow onDark">Appraising · trade‑in · as at 30 Sep 2026</div>
+      <div class="mont" style="font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.15;margin-top:5px">Mercedes-Benz E200 Avantgarde</div>
+      <div style="font-size:13px;color:#A9A9A6;margin-top:4px">W213 · Condition <span style="color:#fff">Good</span> · Paper value (PARF) <span class="na" style="color:#A9A9A6">not provided</span></div>
+    </div>
+    <div style="display:flex;gap:40px;margin-left:auto">
+      <div><div class="eyebrow onDark">Mileage</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">72,000 <span style="font-size:13px;font-weight:400;color:#A9A9A6">km</span></div></div>
+      <div><div class="eyebrow onDark">Owners</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">2</div></div>
+      <div><div class="eyebrow onDark">COE left</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">3y 5m <span style="font-size:13px;font-weight:400;color:#A9A9A6">original</span></div></div>
+      <div style="border-left:1px solid #444;padding-left:32px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;font-size:12px;color:#A9A9A6">
+        <div>Registered <span class="num" style="color:#fff">18 Mar 2020</span></div>
+        <div>OMV <span class="num" style="color:#fff">$45,200</span> · ARF <span class="num" style="color:#fff">$55,280</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff;border-bottom:1px solid #D8D8D6;padding:14px 32px;display:flex;align-items:center;gap:36px;flex-shrink:0">
+    <div><div class="eyebrow">Parsed from your paste</div><div class="num" style="font-size:20px;font-weight:600;margin-top:2px;white-space:nowrap">94 <span style="font-size:13px;font-weight:400;color:#6B6B6B">vehicle listings detected</span></div></div>
+    <div style="display:flex;gap:28px;align-items:center;font-size:13.5px">
+      <span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot sage"></span><b class="num" style="font-weight:600">88</b> ready to review</span>
+      <span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot amb"></span><b class="num" style="font-weight:600">6</b> need dealer input</span>
+      <span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot grey"></span><b class="num" style="font-weight:600">41</b> page blocks ignored <span class="sub">(navigation, 6 promoted vehicles, calculators)</span></span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center"><button class="link" type="button">Paste again</button><span class="sub">Exact source values are accepted as read. Missing fields show <span class="na">Not stated</span>. Nothing is guessed.</span></div>
+  </div>
+  <div style="padding:20px 32px 24px;flex-grow:1;display:flex;flex-direction:column;min-height:0">
+    <section style="background:#fff;border:1px solid #D8D8D6;display:flex;flex-direction:column;flex-grow:1" aria-label="Candidate pool — all parsed listings">
+      
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 16px 0;border-bottom:1px solid #D8D8D6">
+        <div style="display:flex;gap:22px"><button class="tab" type="button">Suggested shortlist<span class="c">8</span></button><button class="tab" type="button">Plausible<span class="c">24</span></button><button class="tab on" type="button">All parsed<span class="c">94</span></button><button class="tab" type="button">Needs input<span class="c">6</span></button><button class="tab" type="button">Ignored<span class="c">41</span></button></div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;padding-bottom:8px">
+          <div style="position:relative;width:220px"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" style="position:absolute;left:10px;top:10px"><circle cx="6" cy="6" r="4.5" fill="none" stroke="#9B9B98" stroke-width="1.5"/><path d="M9.5 9.5L13 13" stroke="#9B9B98" stroke-width="1.5"/></svg><input class="txt" type="search" placeholder="Search parsed listings" aria-label="Search parsed listings"></div>
+          <button class="pill" type="button">Variant <b>Any</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="#6B6B6B" stroke-width="1.5"/></svg></button>
+          <button class="pill" type="button">COE <b>Any</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="#6B6B6B" stroke-width="1.5"/></svg></button>
+          <button class="pill" type="button">Reg year <b>Any</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="#6B6B6B" stroke-width="1.5"/></svg></button>
+          <button class="pill" type="button">Mileage <b>Any</b><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5l3 3 3-3" fill="none" stroke="#6B6B6B" stroke-width="1.5"/></svg></button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 16px 10px">
+        <h2 class="h2">All parsed listings</h2>
+        <span class="sub">94 · grouped by how close they are to this car · sorted by asking within each group</span>
+        <span class="sub" style="margin-left:auto">Showing 10 of 94 in this mock</span>
+      </div>
+      <table>
+        <thead><tr><th style="width:40px"></th><th>Listing</th><th class="r">Asking ▲</th><th class="r">Depreciation / yr</th><th class="r">Mileage</th><th class="r">Owners</th><th>COE left</th><th class="r sec">OMV · ARF · Reg</th></tr></thead>
+        <tr class="tier"><td colspan="8">In shortlist · 8<span style="font-weight:500;letter-spacing:0;text-transform:none;color:#8A8A87;margin-left:10px">6 included · 2 unticked</span></td></tr>
+        <tr class=""><td class="state"><span class="ck on" aria-label="Included"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 4 · Fair</span><span class="note amb">Review · lower depreciation than selected comps</span></td>
+<td class="r"><span class="v price num">$107,500</span></td>
+<td class="r"><span class="v num">$22,400<span class="u">/yr</span></span><span class="d num amb">−$3,235 vs median</span></td>
+<td class="r"><span class="v num">96,000<span class="u">km</span></span><span class="d num amb">+24,000</span></td>
+<td class="r"><span class="v num">3</span><span class="d num amb">+1</span></td>
+<td><span class="v num">3y 7m</span><span class="d num">+2 mo</span></td><td class="r"><span class="d num" style="margin-top:3px">$44,600 · $54,440 · May 2020</span></td></tr>
+        <tr class="tier"><td colspan="8">Needs dealer input · 6<span style="font-weight:500;letter-spacing:0;text-transform:none;color:#8A8A87;margin-left:10px">two source values conflict, or the variant is ambiguous — pick one; nothing is guessed</span></td></tr>
+        <tr class="rev"><td class="state"><span class="ck rev" aria-label="Needs review"><svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#C98A1F"/></svg></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 23 · Good · Dealer: Prestige Motors</span><span class="note amb">Needs input · two mileage values in the source — pick one</span></td>
+<td class="r"><span class="v price num">$109,800</span></td>
+<td class="r"><span class="v num">$24,900<span class="u">/yr</span></span><span class="d num">−$735 vs median</span></td>
+<td class="r" style="white-space:normal;min-width:170px">
+  <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+    <button class="link" type="button" style="text-decoration:none;color:#1B1B1B;border:1px solid #D8D8D6;padding:3px 8px;border-radius:2px;font-size:13px;white-space:nowrap"><b class="num" style="font-weight:600">9,600 km</b> <span style="color:#7A7A77">· “Mileage 9,600km”</span></button>
+    <button class="link" type="button" style="text-decoration:none;color:#1B1B1B;border:1px solid #D8D8D6;padding:3px 8px;border-radius:2px;font-size:13px;white-space:nowrap"><b class="num" style="font-weight:600">96,000 km</b> <span style="color:#7A7A77">· “96k km, well kept”</span></button>
+    <button class="link" type="button">Edit</button>
+  </div>
+</td>
+<td class="r"><span class="v num">2</span><span class="d">same</span></td>
+<td><span class="v num">3y 6m</span><span class="d num">+1 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$45,000 · $55,100 · Apr 2020</span></td></tr>
+        <tr class="rev"><td class="state"><span class="ck rev" aria-label="Needs review"><svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="#C98A1F"/></svg></span></td>
+<td><span class="name">E200 <span style="color:#9A6412">(variant unclear)</span></span><span class="meta">Listing 44 · Excellent</span><span class="note amb">Needs input · title says “E200 AMG Premium Plus”, description says “Avantgarde” — pick one</span><span class="note" style="margin-top:4px;display:flex;gap:10px"><button class="link" type="button" style="text-decoration:none;color:#1B1B1B;border:1px solid #D8D8D6;padding:2px 8px;border-radius:2px">AMG Line</button><button class="link" type="button" style="text-decoration:none;color:#1B1B1B;border:1px solid #D8D8D6;padding:2px 8px;border-radius:2px">Avantgarde</button></span></td>
+<td class="r"><span class="v price num">$132,000</span></td>
+<td class="r"><span class="v num">$27,600<span class="u">/yr</span></span><span class="d num amb">+$1,965 vs median</span></td>
+<td class="r"><span class="v num">58,000<span class="u">km</span></span><span class="d num">−14,000</span></td>
+<td class="r"><span class="v num">1</span><span class="d num">−1</span></td>
+<td><span class="v num">3y 8m</span><span class="d num">+3 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$47,100 · $58,200 · Aug 2020</span></td></tr>
+        <tr class="tier"><td colspan="8">Plausible · 16 more<span style="font-weight:500;letter-spacing:0;text-transform:none;color:#8A8A87;margin-left:10px">same model family · original COE · registered 2019–2021 · exact values accepted as read</span></td></tr>
+        <tr><td class="state"><span class="ck" aria-label="Not included"></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 27 · Excellent</span><span class="note amb">Unusual — review · 12,000 km is low for a 2020 registration · accepted as read</span></td>
+<td class="r"><span class="v price num">$118,800</span></td>
+<td class="r"><span class="v num">$26,100<span class="u">/yr</span></span><span class="d num">+$465 vs median</span></td>
+<td class="r"><span class="v num">12,000<span class="u">km</span></span><span class="d num amb">−60,000</span><span class="d num" style="color:#9B9B98;font-size:11px">source: “Mileage 12,000 km”</span></td>
+<td class="r"><span class="v num">1</span><span class="d num">−1</span></td>
+<td><span class="v num">3y 7m</span><span class="d num">+2 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$45,600 · $55,900 · May 2020</span></td></tr>
+        <tr><td class="state"><span class="ck" aria-label="Not included"></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 31 · <span class="na">condition not stated</span></span><span class="note">Not stated · owners, depreciation — nothing filled in</span></td>
+<td class="r"><span class="v price num">$111,000</span></td>
+<td class="r"><span class="v na" style="font-weight:400;font-size:14px">Not stated</span></td>
+<td class="r"><span class="v num">83,000<span class="u">km</span></span><span class="d num">+11,000</span></td>
+<td class="r"><span class="v na" style="font-weight:400;font-size:14px">Not stated</span></td>
+<td><span class="v num">3y 3m</span><span class="d num">−2 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px"><span class="na">n/s</span> · $55,300 · Jun 2020</span></td></tr>
+        <tr><td class="state"><span class="ck" aria-label="Not included"></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 12 · Good</span></td>
+<td class="r"><span class="v price num">$104,800</span></td>
+<td class="r"><span class="v num">$24,400<span class="u">/yr</span></span><span class="d num">−$1,235 vs median</span></td>
+<td class="r"><span class="v num">88,000<span class="u">km</span></span><span class="d num">+16,000</span></td>
+<td class="r"><span class="v num">2</span><span class="d">same</span></td>
+<td><span class="v num">3y 0m</span><span class="d num">−5 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$44,700 · $54,600 · Oct 2019</span></td></tr>
+<tr><td class="state"><span class="ck" aria-label="Not included"></span></td>
+<td><span class="name">E200 Exclusive</span><span class="meta">Listing 18 · Good</span></td>
+<td class="r"><span class="v price num">$116,800</span></td>
+<td class="r"><span class="v num">$25,700<span class="u">/yr</span></span><span class="d num">+$65 vs median</span></td>
+<td class="r"><span class="v num">66,000<span class="u">km</span></span><span class="d num">−6,000</span></td>
+<td class="r"><span class="v num">1</span><span class="d num">−1</span></td>
+<td><span class="v num">3y 6m</span><span class="d num">+1 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$45,400 · $55,600 · Apr 2020</span></td></tr>
+        <tr class="tier"><td colspan="8">Set aside · 64<span style="font-weight:500;letter-spacing:0;text-transform:none;color:#8A8A87;margin-left:10px">different model, renewed or short COE, registered before 2018</span></td></tr>
+        <tr class="off"><td class="state"><span class="ck no" aria-label="Excluded"><svg width="10" height="2" viewBox="0 0 10 2" aria-hidden="true"><path d="M0 1h10" stroke="#9B9B98" stroke-width="2"/></svg></span></td>
+<td><span class="name">E200 Avantgarde</span><span class="meta">Listing 57 · Good</span><span class="note">Set aside · registered 2014 · renewed COE (5y) · not like‑for‑like</span></td>
+<td class="r"><span class="v price num">$78,800</span></td>
+<td class="r"><span class="v num">$15,900<span class="u">/yr</span></span><span class="d num">−$9,735 vs median</span></td>
+<td class="r"><span class="v num">162,000<span class="u">km</span></span><span class="d num">+90,000</span></td>
+<td class="r"><span class="v num">4</span><span class="d num">+2</span></td>
+<td><span class="v num">5y 0m</span><span class="d num amb">Renewed · +19 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$46,900 · $57,800 · Feb 2014</span></td></tr>
+<tr class="off"><td class="state"><span class="ck no" aria-label="Excluded"><svg width="10" height="2" viewBox="0 0 10 2" aria-hidden="true"><path d="M0 1h10" stroke="#9B9B98" stroke-width="2"/></svg></span></td>
+<td><span class="name">E250 Avantgarde</span><span class="meta">Listing 61 · Good</span><span class="note">Set aside · different model (E250) · shown because the search returned it</span></td>
+<td class="r"><span class="v price num">$121,000</span></td>
+<td class="r"><span class="v num">$26,200<span class="u">/yr</span></span><span class="d num">+$565 vs median</span></td>
+<td class="r"><span class="v num">71,000<span class="u">km</span></span><span class="d num">−1,000</span></td>
+<td class="r"><span class="v num">2</span><span class="d">same</span></td>
+<td><span class="v num">3y 4m</span><span class="d num">−1 mo</span></td>
+<td class="r"><span class="d num" style="margin-top:3px">$49,800 · $61,000 · Mar 2020</span></td></tr>
+        <tr class="off"><td class="state"></td><td colspan="7" style="white-space:normal;font-size:12.5px;color:#8A8A87;line-height:1.5">
+<b style="color:#6B6B6B;font-weight:600">Ignored page text · 41 blocks</b> — 6 promoted vehicles (BMW 520i, Audi A6, Lexus ES 250 …, not E200), navigation and filters, loan and COE calculators, dealer banners, “Recently viewed”, footer. <button class="link" type="button">Show ignored blocks</button></td></tr>
+      </table>
+      <div style="padding:12px 16px;display:flex;gap:16px;align-items:center;font-size:12px;color:#6B6B6B;border-top:1px solid #EDEDEA;margin-top:auto">
+        <span>Exact values accepted as read; only conflicts and ambiguity wait for you. Tick any row to add it.</span>
+        <span style="margin-left:auto;display:flex;gap:10px;align-items:center"><span class="sub" style="white-space:nowrap">6 comparables will open in Comparison</span><button class="btn primary" type="button">Continue to Comparison →</button></span>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1480}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

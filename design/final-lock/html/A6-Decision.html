@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Decision Summary — final</title>
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#F4F4F2;color:#1B1B1B;font-size:14px;line-height:1.4}
+a{color:#1B1B1B}a:hover{color:#BC151B}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mont{font-family:Montserrat,system-ui,sans-serif}
+.eyebrow{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6B6B6B}
+.eyebrow.onDark{color:#A9A9A6}
+.h2{font-family:Montserrat,system-ui,sans-serif;font-size:15px;font-weight:700;margin:0}
+.na{color:#9B9B98;font-style:italic}
+.nav a{font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;text-decoration:none;color:#6B6B6B;padding:18px 2px 16px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+.nav a.on{color:#1B1B1B;border-bottom-color:#BC151B}
+.nav a.done{color:#1B1B1B}
+.nav .st{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B9B6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#6B6B6B;font-family:"IBM Plex Sans",sans-serif}
+.nav a.on .st{border-color:#1B1B1B;color:#1B1B1B}
+.nav a.done .st{border-color:#3F6B4C;background:#3F6B4C;color:#fff}
+.btn{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;border-radius:2px;padding:10px 18px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#BC151B;color:#fff}
+.btn.primary:hover{background:#A51618}
+.btn.secondary{background:#fff;color:#1B1B1B;border-color:#1B1B1B}
+.btn.ghost{background:none;color:#6B6B6B;border-color:#D8D8D6}
+.link{font-size:12px;color:#6B6B6B;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1B1B1B;background:#fff;border:1px solid #D8D8D6;border-radius:2px;padding:6px 10px;font-family:inherit;cursor:pointer}
+.pill b{font-weight:500}
+table{border-collapse:collapse;width:100%}
+th{font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;text-align:left;padding:10px 12px 8px;border-bottom:1px solid #D8D8D6;white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+th.sec{color:#B0B0AD;font-weight:500;text-transform:none;letter-spacing:0;font-size:11px}
+td{padding:10px 12px;border-bottom:1px solid #E6E6E3;vertical-align:top;white-space:nowrap}
+td .v{display:block;font-size:15px;font-weight:500;color:#1B1B1B;line-height:1.25}
+td .v .u{font-size:12px;font-weight:400;color:#7A7A77;margin-left:2px}
+td .v.price{font-weight:600;font-size:16px}
+td .d{display:block;font-size:12px;color:#8A8A87;margin-top:3px;line-height:1.2}
+td .d.amb{color:#9A6412}
+td .name{display:block;font-size:14px;font-weight:600;color:#1B1B1B;line-height:1.25}
+td .meta{display:block;font-size:12px;color:#7A7A77;margin-top:3px}
+td .note{display:block;font-size:12px;margin-top:5px;color:#7A7A77;white-space:normal;max-width:330px;line-height:1.35}
+td .note.amb{color:#9A6412}
+td .note.sage{color:#3F6B4C}
+tr.ref td{background:#F7F7F5;border-bottom:1px solid #D8D8D6}
+tr.ref td:first-child{box-shadow:inset 3px 0 0 #BC151B}
+tr.off td{color:#8A8A87}
+tr.off td .v,tr.off td .name{color:#8A8A87;font-weight:500}
+tr.off td .v.price{font-weight:600}
+tr.off td .d{color:#B0B0AD}
+tr.off td .note.amb{color:#9A6412}
+tr.rev td{background:#FDFAF2}
+tr.tier td{background:#F7F7F5;padding:7px 12px;font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;border-bottom:1px solid #D8D8D6}
+td.state{width:40px;padding-right:0}
+.ck{width:18px;height:18px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #B9B9B6;background:#fff}
+.ck.on{background:#3F6B4C;border-color:#3F6B4C}
+.ck.rev{border-color:#C98A1F;background:#fff}
+.ck.no{border-color:#D8D8D6;background:#F4F4F2}
+input[type=checkbox]{width:16px;height:16px;margin:2px 0 0;accent-color:#3F6B4C}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #EDEDEA;font-size:13.5px}
+.kv .k{color:#6B6B6B}
+.kv .n{font-weight:500}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 14px 112px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #EDEDEA}
+.fld label{font-size:13.5px;color:#1B1B1B;line-height:1.25}
+.fld .op{color:#9B9B98;text-align:center;font-size:14px}
+.fld input{width:100%;box-sizing:border-box;text-align:right;font:inherit;font-size:15px;font-weight:500;padding:6px 8px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;font-variant-numeric:tabular-nums}
+.fld input:focus{outline:2px solid #1B1B1B;outline-offset:1px}
+.sub{font-size:12px;color:#7A7A77;line-height:1.4}
+.txt{font:inherit;font-size:13px;padding:8px 10px 8px 32px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;width:100%;box-sizing:border-box}
+.tab{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6B6B6B;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab.on{color:#1B1B1B;border-bottom-color:#1B1B1B}
+.tab .c{font-family:"IBM Plex Sans",sans-serif;font-weight:500;color:#8A8A87;font-variant-numeric:tabular-nums}
+.tab.on .c{color:#1B1B1B}
+.dot{width:7px;height:7px;border-radius:50%;background:#B9B9B6;display:inline-block}
+.dot.amb{background:#C98A1F}.dot.sage{background:#3F6B4C}.dot.grey{background:#B9B9B6}
+
+.step{display:grid;grid-template-columns:72px minmax(0,1fr);gap:0 24px;padding:26px 0;border-top:1px solid #D8D8D6}
+.step .no{font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;color:#9B9B98;padding-top:4px;line-height:1.4}
+.step h2{font-family:Montserrat,system-ui,sans-serif;font-size:17px;font-weight:700;margin:0 0 12px}
+.ledger{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #EDEDEA;font-size:15px}
+.ledger .k{color:#4A4A48}
+.ledger .op{color:#9B9B98;margin-right:10px}
+.obs{display:flex;gap:12px;align-items:flex-start;padding:6px 0;font-size:15px;color:#2A2A28;line-height:1.45}
+.obs .dot{margin-top:8px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+
+<div style="width:1440px;height:1720px;box-sizing:border-box;display:flex;flex-direction:column;background:#F4F4F2;overflow:hidden">
+
+  <div style="height:56px;box-sizing:border-box;background:#FFFFFF;border-bottom:1px solid #D8D8D6;display:flex;align-items:center;padding:0 32px;gap:40px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:15px;font-weight:700;letter-spacing:.06em;color:#201D1D">MOTORWAY</span><span style="width:1px;height:18px;background:#D8D8D6;margin:0 4px"></span><span class="mont" style="font-size:13px;font-weight:500;color:#6B6B6B">Pricing Desk</span></div>
+    <nav class="nav" style="display:flex;gap:28px;height:56px;align-items:stretch" aria-label="Workflow"><a class="done" href="A1-Import-Empty.html"><span class="st"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span>Import</a><a class="done" href="A5-Comparison.html"><span class="st"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span>Comparison</a><a class="on" href="A6-Decision.html" aria-current="page"><span class="st">3</span>Decision Summary</a></nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;color:#6B6B6B"><span>Summarises the Comparison desk as it stands · 30 Sep 2026</span><span style="width:28px;height:28px;border-radius:50%;background:#262626;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600" aria-label="Signed in as C.Y.">CY</span></div>
+  </div>
+  <div style="width:920px;margin:0 auto;padding:40px 0 48px;box-sizing:border-box;display:flex;flex-direction:column">
+
+    <div class="step" style="border-top:0;padding-top:0">
+      <div class="no">01<br>CAR</div>
+      <div>
+        <div class="eyebrow">Car being appraised · trade‑in</div>
+        <div class="mont" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">Mercedes-Benz E200 Avantgarde <span style="color:#9B9B98;font-weight:500">W213</span></div>
+        <div class="num" style="font-size:15px;color:#4A4A48;margin-top:10px;display:flex;gap:18px;flex-wrap:wrap">
+          <span>Registered <b style="font-weight:600;color:#1B1B1B">18 Mar 2020</b></span><span>Mileage <b style="font-weight:600;color:#1B1B1B">72,000 km</b></span><span>Owners <b style="font-weight:600;color:#1B1B1B">2</b></span><span>COE <b style="font-weight:600;color:#1B1B1B">3y 5m</b> original</span><span>Condition <b style="font-weight:600;color:#1B1B1B">Good</b></span>
+        </div>
+        <div class="num sub" style="margin-top:6px">OMV $45,200 · ARF $55,280 · Paper value (PARF) not provided</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">02<br>MARKET</div>
+      <div>
+        <h2>Comparable‑market TL;DR</h2>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+          <div style="border-left:2px solid #D8D8D6;padding-left:14px"><div class="eyebrow">Comparables selected</div><div class="num mont" style="font-size:30px;font-weight:700;margin-top:4px">6 <span style="font-size:14px;font-weight:500;color:#7A7A77">of 8 shortlisted · 94 imported</span></div></div>
+          <div style="border-left:2px solid #D8D8D6;padding-left:14px"><div class="eyebrow">Median asking</div><div class="num mont" style="font-size:30px;font-weight:700;margin-top:4px">$114,150</div></div>
+          <div style="border-left:2px solid #D8D8D6;padding-left:14px"><div class="eyebrow">Median depreciation / yr</div><div class="num mont" style="font-size:30px;font-weight:700;margin-top:4px">$25,635</div></div>
+        </div>
+        <div class="num sub" style="margin-top:12px">Asking range $106,800 – $138,800. Asking prices, not sale prices.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">03<br>NOTES</div>
+      <div>
+        <h2>Key differences</h2>
+        <div class="obs"><span class="dot grey"></span><span>This car sits mid‑set: <b class="num">72,000 km</b> vs comps 44,000–96,000 · <b class="num">2</b> owners vs 1–3 · COE <b class="num">3y 5m</b> vs 3y 2m – 4y 1m.</span></div>
+        <div class="obs"><span class="dot amb"></span><span>Two of six selected comps are <b>AMG Line</b> trim ($137,800 – $138,800): higher spec, top of the range, lifting the median.</span></div>
+        <div class="obs"><span class="dot amb"></span><span><b>Listing 4</b> shows lower depreciation (<span class="num">$22,400/yr · −$3,235</span> vs median) but is Fair condition, 3 owners, <span class="num">96,000 km</span>.</span></div>
+        <div class="obs"><span class="dot amb"></span><span><b>Listing 3</b> shows higher depreciation (<span class="num">+$3,255</span> vs median).</span></div>
+        <div class="obs"><span class="dot grey"></span><span>Unticked by default, not counted: short COE (<span class="num">0y 10m · $50,800</span>) and renewed COE (<span class="num">9y 8m · $139,800</span>).</span></div>
+        <div class="obs"><span class="dot grey"></span><span>Not stated: Listing 5 ARF and condition; Listing 7 OMV. This car’s PARF value not provided.</span></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">04<br>MATH</div>
+      <div>
+        <h2>Dealer economics <span style="font-size:12px;font-weight:500;color:#7A7A77;margin-left:8px">deterministic · dealer inputs</span></h2>
+        <div style="max-width:560px">
+          <div class="ledger"><span class="k">Expected resale price</span><span class="num" style="font-weight:500">$112,000</span></div>
+          <div class="ledger"><span class="k"><span class="op">−</span>Reconditioning / repairs</span><span class="num">$3,500</span></div>
+          <div class="ledger"><span class="k"><span class="op">−</span>Other costs</span><span class="num">$1,500</span></div>
+          <div class="ledger" style="border-bottom:0"><span class="k"><span class="op">−</span>Target gross profit</span><span class="num">$8,000</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" style="padding-top:0;border-top:0">
+      <div class="no">05<br>MAX</div>
+      <div style="background:#262626;color:#fff;padding:20px 24px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px">
+        <div><div class="eyebrow onDark">Maximum acquisition price</div><div class="num mont" style="font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:6px">$99,000</div></div>
+        <div class="num" style="font-size:12px;color:#A9A9A6;text-align:right;line-height:1.5">112,000 − 3,500 − 1,500 − 8,000<br>Dealer math. Moves only when the inputs move.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">06<br>OPINION</div>
+      <div style="border:1px dashed #B9B9B6;padding:18px 22px 16px;background:#FAFAF8">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+          <h2 style="margin:0">AI second opinion</h2>
+          <span class="eyebrow" style="color:#9A6412;border:1px solid #D9C89E;padding:2px 8px;border-radius:2px">Advisory · not a valuation · not the maximum</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:14px;margin-top:12px">
+          <span style="font-size:14px;color:#6B6B6B">Suggested opening offer range</span>
+          <span class="num" style="font-size:24px;font-weight:500;color:#1B1B1B">$93,000 – $96,000</span>
+          <span class="num sub">$3,000 – $6,000 under the maximum</span>
+        </div>
+        <ol style="margin:12px 0 0;padding-left:20px;font-size:14px;color:#2A2A28;display:flex;flex-direction:column;gap:6px;line-height:1.45">
+          <li>Opening under the <span class="num">$99,000</span> ceiling keeps room to move without giving up the $8,000 target profit.</li>
+          <li>The closest like‑for‑like listing (Listing 5: 70,000 km, 2 owners, same COE) asks <span class="num">$114,500</span>; the <span class="num">$112,000</span> resale assumption is already conservative against it.</li>
+          <li>The Avantgarde / Exclusive cluster alone has a median asking of <span class="num">$110,650</span>; the AMG Line comps lift the overall median to $114,150 — don’t anchor on the higher figure.</li>
+        </ol>
+        <div class="sub" style="margin-top:12px">Reads the same selected comparables and inputs. It never changes the maximum, the inputs or the offer.</div>
+      </div>
+    </div>
+
+    <div class="step" style="border-top:0;padding-top:8px;padding-bottom:0">
+      <div class="no">07 · 08<br>DECIDE</div>
+      <div style="border-top:3px solid #BC151B;background:#fff;border-left:1px solid #D8D8D6;border-right:1px solid #D8D8D6;border-bottom:1px solid #D8D8D6;padding:20px 24px 22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start">
+        <div>
+          <h2 style="margin-bottom:4px">Final offer</h2>
+          <label for="a-final" class="sub">Owner enters the figure</label>
+          <div style="display:flex;align-items:center;border:1.5px solid #1B1B1B;background:#fff;margin-top:8px;height:56px;padding:0 16px;gap:8px">
+            <span style="font-size:22px;color:#9B9B98">$</span>
+            <input class="num" id="a-final" type="text" inputmode="numeric" value="95,000" style="border:0;outline:0;flex-grow:1;font-size:28px;font-weight:600;background:transparent;color:#1B1B1B;min-width:0;font-family:inherit">
+          </div>
+          <div class="sub num" style="margin-top:8px">$4,000 below the maximum · inside the advisory range</div>
+        </div>
+        <div style="padding-top:2px">
+          <h2 style="margin-bottom:4px">Projected gross profit at this offer</h2>
+          <div class="num mont" style="font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:8px">$12,000</div>
+          <div class="sub num" style="margin-top:8px">112,000 − 3,500 − 1,500 − 95,000 · $4,000 above target</div>
+          <div style="font-size:14px;font-weight:600;margin-top:14px">Owner makes the final decision.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+</body>
+</html>

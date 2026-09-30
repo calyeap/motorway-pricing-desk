@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Import — empty state</title>
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#F4F4F2;color:#1B1B1B;font-size:14px;line-height:1.4}
+a{color:#1B1B1B}a:hover{color:#BC151B}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mont{font-family:Montserrat,system-ui,sans-serif}
+.eyebrow{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6B6B6B}
+.eyebrow.onDark{color:#A9A9A6}
+.h2{font-family:Montserrat,system-ui,sans-serif;font-size:15px;font-weight:700;margin:0}
+.na{color:#9B9B98;font-style:italic}
+.nav a{font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;text-decoration:none;color:#6B6B6B;padding:18px 2px 16px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+.nav a.on{color:#1B1B1B;border-bottom-color:#BC151B}
+.nav a.done{color:#1B1B1B}
+.nav .st{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B9B6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#6B6B6B;font-family:"IBM Plex Sans",sans-serif}
+.nav a.on .st{border-color:#1B1B1B;color:#1B1B1B}
+.nav a.done .st{border-color:#3F6B4C;background:#3F6B4C;color:#fff}
+.btn{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;border-radius:2px;padding:10px 18px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#BC151B;color:#fff}
+.btn.primary:hover{background:#A51618}
+.btn.secondary{background:#fff;color:#1B1B1B;border-color:#1B1B1B}
+.btn.ghost{background:none;color:#6B6B6B;border-color:#D8D8D6}
+.link{font-size:12px;color:#6B6B6B;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1B1B1B;background:#fff;border:1px solid #D8D8D6;border-radius:2px;padding:6px 10px;font-family:inherit;cursor:pointer}
+.pill b{font-weight:500}
+table{border-collapse:collapse;width:100%}
+th{font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;text-align:left;padding:10px 12px 8px;border-bottom:1px solid #D8D8D6;white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+th.sec{color:#B0B0AD;font-weight:500;text-transform:none;letter-spacing:0;font-size:11px}
+td{padding:10px 12px;border-bottom:1px solid #E6E6E3;vertical-align:top;white-space:nowrap}
+td .v{display:block;font-size:15px;font-weight:500;color:#1B1B1B;line-height:1.25}
+td .v .u{font-size:12px;font-weight:400;color:#7A7A77;margin-left:2px}
+td .v.price{font-weight:600;font-size:16px}
+td .d{display:block;font-size:12px;color:#8A8A87;margin-top:3px;line-height:1.2}
+td .d.amb{color:#9A6412}
+td .name{display:block;font-size:14px;font-weight:600;color:#1B1B1B;line-height:1.25}
+td .meta{display:block;font-size:12px;color:#7A7A77;margin-top:3px}
+td .note{display:block;font-size:12px;margin-top:5px;color:#7A7A77;white-space:normal;max-width:330px;line-height:1.35}
+td .note.amb{color:#9A6412}
+td .note.sage{color:#3F6B4C}
+tr.ref td{background:#F7F7F5;border-bottom:1px solid #D8D8D6}
+tr.ref td:first-child{box-shadow:inset 3px 0 0 #BC151B}
+tr.off td{color:#8A8A87}
+tr.off td .v,tr.off td .name{color:#8A8A87;font-weight:500}
+tr.off td .v.price{font-weight:600}
+tr.off td .d{color:#B0B0AD}
+tr.off td .note.amb{color:#9A6412}
+tr.rev td{background:#FDFAF2}
+tr.tier td{background:#F7F7F5;padding:7px 12px;font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;border-bottom:1px solid #D8D8D6}
+td.state{width:40px;padding-right:0}
+.ck{width:18px;height:18px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #B9B9B6;background:#fff}
+.ck.on{background:#3F6B4C;border-color:#3F6B4C}
+.ck.rev{border-color:#C98A1F;background:#fff}
+.ck.no{border-color:#D8D8D6;background:#F4F4F2}
+input[type=checkbox]{width:16px;height:16px;margin:2px 0 0;accent-color:#3F6B4C}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #EDEDEA;font-size:13.5px}
+.kv .k{color:#6B6B6B}
+.kv .n{font-weight:500}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 14px 112px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #EDEDEA}
+.fld label{font-size:13.5px;color:#1B1B1B;line-height:1.25}
+.fld .op{color:#9B9B98;text-align:center;font-size:14px}
+.fld input{width:100%;box-sizing:border-box;text-align:right;font:inherit;font-size:15px;font-weight:500;padding:6px 8px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;font-variant-numeric:tabular-nums}
+.fld input:focus{outline:2px solid #1B1B1B;outline-offset:1px}
+.sub{font-size:12px;color:#7A7A77;line-height:1.4}
+.txt{font:inherit;font-size:13px;padding:8px 10px 8px 32px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;width:100%;box-sizing:border-box}
+.tab{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6B6B6B;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab.on{color:#1B1B1B;border-bottom-color:#1B1B1B}
+.tab .c{font-family:"IBM Plex Sans",sans-serif;font-weight:500;color:#8A8A87;font-variant-numeric:tabular-nums}
+.tab.on .c{color:#1B1B1B}
+.dot{width:7px;height:7px;border-radius:50%;background:#B9B9B6;display:inline-block}
+.dot.amb{background:#C98A1F}.dot.sage{background:#3F6B4C}.dot.grey{background:#B9B9B6}
+</style>
+</head>
+<body>
+
+
+<div style="width:1440px;height:860px;box-sizing:border-box;display:flex;flex-direction:column;background:#F4F4F2;overflow:hidden">
+
+  <div style="height:56px;box-sizing:border-box;background:#FFFFFF;border-bottom:1px solid #D8D8D6;display:flex;align-items:center;padding:0 32px;gap:40px;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:15px;font-weight:700;letter-spacing:.06em;color:#201D1D">MOTORWAY</span><span style="width:1px;height:18px;background:#D8D8D6;margin:0 4px"></span><span class="mont" style="font-size:13px;font-weight:500;color:#6B6B6B">Pricing Desk</span></div>
+    <nav class="nav" style="display:flex;gap:28px;height:56px;align-items:stretch" aria-label="Workflow"><a class="on" href="A1-Import-Empty.html" aria-current="page"><span class="st">1</span>Import</a><a class="" href="A5-Comparison.html"><span class="st">2</span>Comparison</a><a class="" href="A6-Decision.html"><span class="st">3</span>Decision Summary</a></nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;color:#6B6B6B"><span>Concept V0.7 · sample data</span><span style="width:28px;height:28px;border-radius:50%;background:#262626;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600" aria-label="Signed in as C.Y.">CY</span></div>
+  </div>
+  <div style="background:#262626;color:#FFFFFF;padding:14px 32px;display:flex;align-items:flex-end;gap:48px;flex-shrink:0">
+    <div style="border-left:3px solid #BC151B;padding-left:16px;min-width:430px">
+      <div class="eyebrow onDark">Appraising · trade‑in · as at 30 Sep 2026</div>
+      <div class="mont" style="font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.15;margin-top:5px">Mercedes-Benz E200 Avantgarde</div>
+      <div style="font-size:13px;color:#A9A9A6;margin-top:4px">W213 · Condition <span style="color:#fff">Good</span> · Paper value (PARF) <span class="na" style="color:#A9A9A6">not provided</span></div>
+    </div>
+    <div style="display:flex;gap:40px;margin-left:auto">
+      <div><div class="eyebrow onDark">Mileage</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">72,000 <span style="font-size:13px;font-weight:400;color:#A9A9A6">km</span></div></div>
+      <div><div class="eyebrow onDark">Owners</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">2</div></div>
+      <div><div class="eyebrow onDark">COE left</div><div class="num" style="font-size:18px;font-weight:600;margin-top:4px">3y 5m <span style="font-size:13px;font-weight:400;color:#A9A9A6">original</span></div></div>
+      <div style="border-left:1px solid #444;padding-left:32px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;font-size:12px;color:#A9A9A6">
+        <div>Registered <span class="num" style="color:#fff">18 Mar 2020</span></div>
+        <div>OMV <span class="num" style="color:#fff">$45,200</span> · ARF <span class="num" style="color:#fff">$55,280</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="flex-grow:1;display:flex;align-items:flex-start;justify-content:center;padding:56px 32px 32px">
+    <div style="width:760px">
+      <div class="eyebrow">Step 1 of 3 · Comparables</div>
+      <h1 class="mont" style="font-size:24px;font-weight:700;margin:6px 0 0;letter-spacing:-.01em">Import SGCarMart results</h1>
+      <p style="font-size:15px;color:#4A4A48;margin:8px 0 0;max-width:60ch">Copy the whole results page. The desk finds the vehicle listings, ignores the rest of the page and lays them out in the ledger for you to review.</p>
+
+      <div style="margin-top:28px;background:#fff;border:1px solid #D8D8D6;padding:36px 40px;display:flex;flex-direction:column;align-items:center;text-align:center">
+        <div style="display:grid;grid-template-columns:auto auto auto auto;gap:0 14px;align-items:center;font-size:13px;color:#4A4A48">
+          <span style="display:flex;flex-direction:column;align-items:center;gap:6px"><span class="num mont" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #D8D8D6;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">1</span>On SGCarMart, show your results</span>
+          <span style="display:flex;flex-direction:column;align-items:center;gap:6px"><span class="num mont" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #D8D8D6;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">2</span>Ctrl + A &nbsp;then&nbsp; Ctrl + C</span>
+          <span style="display:flex;flex-direction:column;align-items:center;gap:6px"><span class="num mont" style="width:28px;height:28px;border-radius:50%;border:1.5px solid #D8D8D6;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">3</span>Come back here and paste</span>
+          <span></span>
+        </div>
+        <div style="width:100%;margin-top:28px;border:1.5px dashed #B9B9B6;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;background:#FAFAF8">
+          <button class="btn primary" type="button">Paste SGCarMart results</button>
+          <div class="sub">or press Ctrl + V anywhere on this page</div>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:24px;align-items:center">
+          <button class="link" type="button">Load demo results</button>
+          <span style="width:1px;height:12px;background:#D8D8D6"></span>
+          <span class="sub">Works with 10–100 listings in one paste. Nothing leaves the desk.</span>
+        </div>
+      </div>
+
+      <div class="sub" style="margin-top:20px;display:flex;gap:32px">
+        <span><b style="color:#1B1B1B;font-weight:600">What gets kept:</b> model / variant, asking, depreciation, registration, COE, mileage, owners, dealer, description.</span>
+        <span><b style="color:#1B1B1B;font-weight:600">What gets ignored:</b> navigation, filters, ads, promoted vehicles, calculators.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

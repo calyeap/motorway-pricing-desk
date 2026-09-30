@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Responsive — phone treatment</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+body{margin:0;font-family:"IBM Plex Sans",system-ui,sans-serif;background:#F4F4F2;color:#1B1B1B;font-size:14px;line-height:1.4}
+a{color:#1B1B1B}a:hover{color:#BC151B}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mont{font-family:Montserrat,system-ui,sans-serif}
+.eyebrow{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#6B6B6B}
+.eyebrow.onDark{color:#A9A9A6}
+.h2{font-family:Montserrat,system-ui,sans-serif;font-size:15px;font-weight:700;margin:0}
+.na{color:#9B9B98;font-style:italic}
+.nav a{font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;text-decoration:none;color:#6B6B6B;padding:18px 2px 16px;border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+.nav a.on{color:#1B1B1B;border-bottom-color:#BC151B}
+.nav a.done{color:#1B1B1B}
+.nav .st{width:16px;height:16px;border-radius:50%;border:1.5px solid #B9B9B6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#6B6B6B;font-family:"IBM Plex Sans",sans-serif}
+.nav a.on .st{border-color:#1B1B1B;color:#1B1B1B}
+.nav a.done .st{border-color:#3F6B4C;background:#3F6B4C;color:#fff}
+.btn{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:.02em;border-radius:2px;padding:10px 18px;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#BC151B;color:#fff}
+.btn.primary:hover{background:#A51618}
+.btn.secondary{background:#fff;color:#1B1B1B;border-color:#1B1B1B}
+.btn.ghost{background:none;color:#6B6B6B;border-color:#D8D8D6}
+.link{font-size:12px;color:#6B6B6B;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.pill{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1B1B1B;background:#fff;border:1px solid #D8D8D6;border-radius:2px;padding:6px 10px;font-family:inherit;cursor:pointer}
+.pill b{font-weight:500}
+table{border-collapse:collapse;width:100%}
+th{font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;text-align:left;padding:10px 12px 8px;border-bottom:1px solid #D8D8D6;white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+th.sec{color:#B0B0AD;font-weight:500;text-transform:none;letter-spacing:0;font-size:11px}
+td{padding:10px 12px;border-bottom:1px solid #E6E6E3;vertical-align:top;white-space:nowrap}
+td .v{display:block;font-size:15px;font-weight:500;color:#1B1B1B;line-height:1.25}
+td .v .u{font-size:12px;font-weight:400;color:#7A7A77;margin-left:2px}
+td .v.price{font-weight:600;font-size:16px}
+td .d{display:block;font-size:12px;color:#8A8A87;margin-top:3px;line-height:1.2}
+td .d.amb{color:#9A6412}
+td .name{display:block;font-size:14px;font-weight:600;color:#1B1B1B;line-height:1.25}
+td .meta{display:block;font-size:12px;color:#7A7A77;margin-top:3px}
+td .note{display:block;font-size:12px;margin-top:5px;color:#7A7A77;white-space:normal;max-width:330px;line-height:1.35}
+td .note.amb{color:#9A6412}
+td .note.sage{color:#3F6B4C}
+tr.ref td{background:#F7F7F5;border-bottom:1px solid #D8D8D6}
+tr.ref td:first-child{box-shadow:inset 3px 0 0 #BC151B}
+tr.off td{color:#8A8A87}
+tr.off td .v,tr.off td .name{color:#8A8A87;font-weight:500}
+tr.off td .v.price{font-weight:600}
+tr.off td .d{color:#B0B0AD}
+tr.off td .note.amb{color:#9A6412}
+tr.rev td{background:#FDFAF2}
+tr.tier td{background:#F7F7F5;padding:7px 12px;font-family:Montserrat,system-ui,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6B6B6B;border-bottom:1px solid #D8D8D6}
+td.state{width:40px;padding-right:0}
+.ck{width:18px;height:18px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid #B9B9B6;background:#fff}
+.ck.on{background:#3F6B4C;border-color:#3F6B4C}
+.ck.rev{border-color:#C98A1F;background:#fff}
+.ck.no{border-color:#D8D8D6;background:#F4F4F2}
+input[type=checkbox]{width:16px;height:16px;margin:2px 0 0;accent-color:#3F6B4C}
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid #EDEDEA;font-size:13.5px}
+.kv .k{color:#6B6B6B}
+.kv .n{font-weight:500}
+.fld{display:grid;grid-template-columns:minmax(0,1fr) 14px 112px;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #EDEDEA}
+.fld label{font-size:13.5px;color:#1B1B1B;line-height:1.25}
+.fld .op{color:#9B9B98;text-align:center;font-size:14px}
+.fld input{width:100%;box-sizing:border-box;text-align:right;font:inherit;font-size:15px;font-weight:500;padding:6px 8px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;font-variant-numeric:tabular-nums}
+.fld input:focus{outline:2px solid #1B1B1B;outline-offset:1px}
+.sub{font-size:12px;color:#7A7A77;line-height:1.4}
+.txt{font:inherit;font-size:13px;padding:8px 10px 8px 32px;border:1px solid #D8D8D6;border-radius:2px;background:#fff;color:#1B1B1B;width:100%;box-sizing:border-box}
+.tab{white-space:nowrap;font-family:Montserrat,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:#6B6B6B;background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.tab.on{color:#1B1B1B;border-bottom-color:#1B1B1B}
+.tab .c{font-family:"IBM Plex Sans",sans-serif;font-weight:500;color:#8A8A87;font-variant-numeric:tabular-nums}
+.tab.on .c{color:#1B1B1B}
+.dot{width:7px;height:7px;border-radius:50%;background:#B9B9B6;display:inline-block}
+.dot.amb{background:#C98A1F}.dot.sage{background:#3F6B4C}.dot.grey{background:#B9B9B6}
+
+.ph{width:390px;height:900px;background:#F4F4F2;border:1px solid #D8D8D6;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+.ph .bar{height:48px;background:#fff;border-bottom:1px solid #D8D8D6;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.mcard{background:#fff;border:1px solid #D8D8D6;padding:12px 14px}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.mgrid .l{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8A8A87;font-family:Montserrat,sans-serif;font-weight:600}
+.mgrid .v{font-size:14px;font-weight:500;margin-top:2px}
+.mgrid .d{font-size:11px;color:#8A8A87;margin-top:1px}
+.mgrid .d.amb{color:#9A6412}
+.mtab{font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#6B6B6B;padding:12px 0 10px;border-bottom:2px solid transparent}
+.mtab.on{color:#1B1B1B;border-bottom-color:#BC151B}
+</style>
+</helmet>
+<div style="width:1440px;height:1100px;box-sizing:border-box;display:flex;flex-direction:column;background:#F4F4F2;overflow:hidden">
+
+  <div style="padding:36px 40px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;gap:40px;align-items:baseline"><div class="mont" style="font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#BC151B">Responsive · phone 390 px</div><div class="sub">Not a shrunken table. Each phase keeps its first job: paste · compare · decide. Advanced comparison (filters, OMV/ARF, sort) stays desktop.</div></div>
+    <div style="display:flex;gap:60px;align-items:flex-start">
+      <div><div class="ph"><div class="bar"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:12px;font-weight:700;letter-spacing:.06em">MOTORWAY</span><span style="margin-left:auto;display:flex;gap:14px"><span class="mtab on">Import</span><span class="mtab">Comparison</span><span class="mtab">Decision</span></span></div><div style="background:#262626;color:#fff;padding:12px 16px">
+      <div style="border-left:3px solid #BC151B;padding-left:10px"><div class="eyebrow onDark" style="font-size:10px">Appraising · trade‑in</div><div class="mont" style="font-size:16px;font-weight:700;margin-top:3px;line-height:1.15">Mercedes-Benz E200 Avantgarde</div></div>
+      
+    </div>
+  <div style="padding:20px 16px;display:flex;flex-direction:column;gap:14px">
+    <div><div class="eyebrow">Step 1 of 3</div><div class="mont" style="font-size:19px;font-weight:700;margin-top:4px">Import SGCarMart results</div><div class="sub" style="margin-top:6px">Best done on desktop. On a phone: open SGCarMart results, select all, copy, then paste here.</div></div>
+    <div style="border:1.5px dashed #B9B9B6;padding:26px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;background:#FAFAF8"><button class="btn primary" type="button" style="width:100%;justify-content:center">Paste SGCarMart results</button><button class="link" type="button">Load demo results</button></div>
+    <div class="mcard" style="padding:12px 14px"><div class="eyebrow">Parsed from your paste</div><div class="num" style="font-size:18px;font-weight:600;margin-top:2px">94 <span style="font-size:12px;font-weight:400;color:#6B6B6B">listings detected</span></div><div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;font-size:12.5px"><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot sage"></span><b class="num">88</b> ready to review</span><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot amb"></span><b class="num">6</b> need dealer input</span><span style="display:flex;gap:8px;align-items:center;white-space:nowrap"><span class="dot grey"></span><b class="num">41</b> page blocks ignored</span></div></div>
+    <div class="mcard" style="padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="mont" style="font-size:13px;font-weight:700">Suggested shortlist</span><span class="sub num">8 of 17</span></div><div class="sub" style="margin-top:4px">Review each candidate below, then continue.</div></div>
+    <button class="btn primary" type="button" style="justify-content:center">Continue to Comparison →</button>
+  </div>
+</div><div class="sub" style="margin-top:10px;width:390px">Import: one action, parse summary, then straight to the shortlist. Long lists scroll; the Continue button stays at the bottom.</div></div>
+      <div><div class="ph"><div class="bar"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:12px;font-weight:700;letter-spacing:.06em">MOTORWAY</span><span style="margin-left:auto;display:flex;gap:14px"><span class="mtab">Import</span><span class="mtab on">Comparison</span><span class="mtab">Decision</span></span></div><div style="background:#262626;color:#fff;padding:16px 16px">
+      <div style="border-left:3px solid #BC151B;padding-left:10px"><div class="eyebrow onDark" style="font-size:10px">Appraising · trade‑in</div><div class="mont" style="font-size:19px;font-weight:700;margin-top:3px;line-height:1.15">Mercedes-Benz E200 Avantgarde</div></div>
+      <div class="num" style="display:flex;gap:18px;margin-top:12px;font-size:14px;font-weight:600"><span>72,000 <span style="font-size:11px;font-weight:400;color:#A9A9A6">km</span></span><span>2 <span style="font-size:11px;font-weight:400;color:#A9A9A6">owners</span></span><span>3y 5m <span style="font-size:11px;font-weight:400;color:#A9A9A6">COE</span></span><span style="margin-left:auto;font-size:11px;color:#A9A9A6;font-weight:400;align-self:end">Details ▾</span></div>
+    </div>
+  <div style="padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center"><span class="mont" style="font-size:13px;font-weight:700">Comparables</span><span class="sub">6 of 8 · sorted by asking</span></div>
+  <div style="padding:10px 16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;flex-grow:1">
+    <div class="mcard" style="">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div style="font-weight:600;font-size:14px">E200 Avantgarde</div><div class="sub" style="font-size:11px">Listing 1 · Good</div></div><div style="display:flex;align-items:center;gap:8px"><span class="num" style="font-size:16px;font-weight:600">$106,800</span><span class="ck on"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span></div></div>
+      
+      <div class="mgrid"><div><div class="l">Dep / yr</div><div class="v num">$25.1k</div><div class="d num">−$575</div></div><div><div class="l">Mileage</div><div class="v num">78k</div><div class="d num">+6k</div></div><div><div class="l">Owners</div><div class="v num">2</div><div class="d num">same</div></div><div><div class="l">COE</div><div class="v num">3y 2m</div><div class="d num">−3 mo</div></div></div>
+    </div>
+    <div class="mcard" style="">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div style="font-weight:600;font-size:14px">E200 Avantgarde</div><div class="sub" style="font-size:11px">Listing 4 · Fair</div></div><div style="display:flex;align-items:center;gap:8px"><span class="num" style="font-size:16px;font-weight:600">$107,500</span><span class="ck on"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span></div></div>
+      <div style="font-size:11px;color:#9A6412;margin-top:5px">Review · lower depreciation than selected comps</div>
+      <div class="mgrid"><div><div class="l">Dep / yr</div><div class="v num">$22.4k</div><div class="d num amb">−$3.2k</div></div><div><div class="l">Mileage</div><div class="v num">96k</div><div class="d num amb">+24k</div></div><div><div class="l">Owners</div><div class="v num">3</div><div class="d num amb">+1</div></div><div><div class="l">COE</div><div class="v num">3y 7m</div><div class="d num">+2 mo</div></div></div>
+    </div>
+    <div class="mcard" style="">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div style="font-weight:600;font-size:14px">E200 Exclusive</div><div class="sub" style="font-size:11px">Listing 2 · Good</div></div><div style="display:flex;align-items:center;gap:8px"><span class="num" style="font-size:16px;font-weight:600">$113,800</span><span class="ck on"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span></div></div>
+      
+      <div class="mgrid"><div><div class="l">Dep / yr</div><div class="v num">$25.8k</div><div class="d num">+$195</div></div><div><div class="l">Mileage</div><div class="v num">61k</div><div class="d num">−11k</div></div><div><div class="l">Owners</div><div class="v num">1</div><div class="d num">−1</div></div><div><div class="l">COE</div><div class="v num">3y 4m</div><div class="d num">−1 mo</div></div></div>
+    </div>
+    <div class="mcard" style="">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px"><div><div style="font-weight:600;font-size:14px">E200 Avantgarde</div><div class="sub" style="font-size:11px">Listing 5 · condition not stated</div></div><div style="display:flex;align-items:center;gap:8px"><span class="num" style="font-size:16px;font-weight:600">$114,500</span><span class="ck on"><svg width="11" height="9" viewBox="0 0 11 9" aria-hidden="true"><path d="M1 4.5l3 3 6-6" fill="none" stroke="#fff" stroke-width="1.8"/></svg></span></div></div>
+      
+      <div class="mgrid"><div><div class="l">Dep / yr</div><div class="v num">$25.4k</div><div class="d num">−$195</div></div><div><div class="l">Mileage</div><div class="v num">70k</div><div class="d num">−2k</div></div><div><div class="l">Owners</div><div class="v num">2</div><div class="d num">same</div></div><div><div class="l">COE</div><div class="v num">3y 5m</div><div class="d num">same</div></div></div>
+    </div>
+  </div>
+  <div style="background:#262626;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;border-top:1px solid #444">
+    <div><div class="eyebrow onDark" style="font-size:10px">Maximum acquisition price</div><div class="num mont" style="font-size:24px;font-weight:700;line-height:1.1">$99,000</div><div class="num" style="font-size:11px;color:#A9A9A6;margin-top:2px">median asking $114,150</div></div>
+    <button class="btn secondary" type="button" style="background:transparent;color:#fff;border-color:#fff;padding:8px 12px;font-size:12px;white-space:nowrap">Economics ▴</button>
+  </div>
+</div><div class="sub" style="margin-top:10px;width:390px">Comparison: one card per comparable with the five primary fields as value / delta pairs. The payoff is pinned as a charcoal footer; economics open as a sheet.</div></div>
+      <div><div class="ph"><div class="bar"><svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M6 0h6L6 20H0z" fill="#BC151B"/><path d="M15 0h6l-6 20H9z" fill="#201D1D"/><path d="M24 0h2l-6 20h-2z" fill="#BC151B"/></svg><span class="mont" style="font-size:12px;font-weight:700;letter-spacing:.06em">MOTORWAY</span><span style="margin-left:auto;display:flex;gap:14px"><span class="mtab">Import</span><span class="mtab">Comparison</span><span class="mtab on">Decision</span></span></div>
+  <div style="padding:18px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+    <div><div class="eyebrow">Car being appraised</div><div class="mont" style="font-size:20px;font-weight:700;margin-top:4px;line-height:1.15">Mercedes-Benz E200 Avantgarde</div><div class="sub num" style="margin-top:4px">72,000 km · 2 owners · COE 3y 5m · Good</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-top:1px solid #D8D8D6;padding-top:12px">
+      <div><div class="eyebrow" style="font-size:9.5px">Comps</div><div class="num mont" style="font-size:20px;font-weight:700">6</div></div>
+      <div><div class="eyebrow" style="font-size:9.5px">Median asking</div><div class="num mont" style="font-size:20px;font-weight:700">$114.2k</div></div>
+      <div><div class="eyebrow" style="font-size:9.5px">Median dep / yr</div><div class="num mont" style="font-size:20px;font-weight:700">$25.6k</div></div>
+    </div>
+    <div style="border-top:1px solid #D8D8D6;padding-top:12px"><div class="mont" style="font-size:13px;font-weight:700">Key differences</div>
+      <div style="display:flex;gap:8px;margin-top:8px;font-size:12.5px;line-height:1.4"><span class="dot amb" style="margin-top:6px;flex-shrink:0"></span><span>Two of six comps are AMG Line trim, lifting the median.</span></div>
+      <div style="display:flex;gap:8px;margin-top:6px;font-size:12.5px;line-height:1.4"><span class="dot amb" style="margin-top:6px;flex-shrink:0"></span><span>Listing 4: lower depreciation but Fair, 3 owners, 96k km.</span></div>
+      <button class="link" type="button" style="margin-top:6px">4 more</button>
+    </div>
+    <div style="background:#262626;color:#fff;padding:14px 16px"><div class="eyebrow onDark" style="font-size:10px">Maximum acquisition price · dealer math</div><div class="num mont" style="font-size:30px;font-weight:700;line-height:1.1;margin-top:4px">$99,000</div><div class="num" style="font-size:11px;color:#A9A9A6;margin-top:4px">112,000 − 3,500 − 1,500 − 8,000</div></div>
+    <div style="border:1px dashed #B9B9B6;padding:12px 14px;background:#FAFAF8"><div style="display:flex;justify-content:space-between;align-items:center"><span class="mont" style="font-size:13px;font-weight:700">AI second opinion</span><span class="eyebrow" style="font-size:9.5px;color:#9A6412">Advisory</span></div><div class="num" style="font-size:18px;font-weight:500;margin-top:6px">$93,000 – $96,000</div><div class="sub" style="margin-top:4px">3 reasons ▾</div></div>
+    <div style="border-top:3px solid #BC151B;background:#fff;border:1px solid #D8D8D6;border-top:3px solid #BC151B;padding:14px">
+      <div class="eyebrow">Final offer · owner decides</div>
+      <div style="display:flex;align-items:center;border:1.5px solid #1B1B1B;height:46px;padding:0 12px;gap:6px;margin-top:8px"><span style="font-size:18px;color:#9B9B98">$</span><input class="num" type="text" inputmode="numeric" value="95,000" aria-label="Final offer" style="border:0;outline:0;flex-grow:1;font-size:22px;font-weight:600;background:transparent;min-width:0;font-family:inherit"></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px"><span class="sub">Projected gross profit</span><span class="num mont" style="font-size:22px;font-weight:700">$12,000</span></div>
+    </div>
+  </div>
+</div><div class="sub" style="margin-top:10px;width:390px">Decision: the same eight sections, single column. Max is charcoal, AI is dashed, the final offer block is the only red rule.</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
