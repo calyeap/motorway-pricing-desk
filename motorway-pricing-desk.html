@@ -164,6 +164,7 @@ button,input,select{font:inherit;color:inherit}
 .strip .hist[open] summary::after{content:' ▴'}
 .strip .needsBtn{font-size:13.5px;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
 .strip .needsBtn b{font-weight:500}
+.strip .histhint{flex-basis:100%;margin-top:-4px}
 .wrapP{padding:20px var(--pad) 24px}
 .panel{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;min-width:0;border-radius:var(--r-panel);overflow:hidden}
 #stPool .panel{min-height:60vh} /* tab switches don't jump the footer */
@@ -1675,7 +1676,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       (D.nowSold.length?'<details><summary>Marked sold by SGCarMart ('+D.nowSold.length+')</summary>'+li(D.nowSold,function(x){return '<li>'+nm(x.cur)+'</li>'})+'</details>':'')+
       (D.needsReview.length?'<details><summary>Match needs review ('+D.needsReview.length+')</summary>'+li(D.needsReview,function(x){var l=x.cur||x.prev;return '<li>'+nm(l)+' · '+esc(x.why)+'</li>'})+'</details>':'');
     el.hidden=false;
-    el.innerHTML='<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><h2 class="h2">Market Pulse · since last snapshot</h2><span class="sub">'+esc(M.fmtISO(D.prev.capturedFor)||D.prev.capturedFor)+' → '+esc(D.cur.capturedFor?M.fmtISO(D.cur.capturedFor):'today')+' · captured asking evidence only, not sales or demand</span>'+(compact?'':'<button class="link" type="button" id="pulseClose" style="margin-left:auto">Close</button>')+'</div>'+
+    el.innerHTML='<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><h2 class="h2">Market Pulse · changes since previous</h2><span class="sub">'+esc(M.fmtISO(D.prev.capturedFor)||D.prev.capturedFor)+' → '+esc(D.cur.capturedFor?M.fmtISO(D.cur.capturedFor):'today')+' · captured asking evidence only, not sales or demand</span>'+(compact?'':'<button class="link" type="button" id="pulseClose" style="margin-left:auto">Close</button>')+'</div>'+
       D.warnings.map(function(w){return '<div class="warn">'+esc(w)+'</div>'}).join('')+
       '<div class="pgrid"><div><div class="eyebrow">Market read</div><div class="read">'+esc(R.read)+'</div><ul>'+R.why.map(function(w){return '<li>'+esc(w)+'</li>'}).join('')+'</ul>'+
       '<div class="sub" style="margin-top:8px">Price cuts show seller pressure, not proof of low demand. Gone ≠ sold unless SGCarMart marks it sold.'+(D.ownExcluded?' Motorway stock is excluded from the pulse medians.':'')+'</div></div>'+
@@ -1736,7 +1737,9 @@ if(typeof module!=='undefined')module.exports=MPD;
         (c.needs?'<button class="link amb needsBtn" type="button" data-tab="needs"><span class="dot amb"></span><b class="num">'+c.needs+'</b> listing'+pl(c.needs,'','s')+' need'+pl(c.needs,'s','')+' review</button>':'')+
       '</div>'+
       '<div class="end">'+(more?'<button class="link" type="button" id="addPage">Add next page</button>':'')+'<button class="link" type="button" id="pasteAgain">Update search</button>'+
-        (S.demo?'':'<span class="vsep"></span><details class="hist"><summary class="link">Market history</summary><button class="link" type="button" id="saveSnap">Save snapshot'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with saved snapshot</label></details>')+'</div>';
+        (S.demo?'':'<span class="vsep"></span><details class="hist"><summary class="link">Market history</summary><button class="link" type="button" id="saveSnap">Save today\'s market'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with previous</label></details>')+'</div>'+
+      // Daily tracking cue. Never a read without a previous capture.
+      (S.demo||S.diff?'':'<div class="sub histhint">'+(S.lastSaved?'Saved today\'s market ('+esc(S.lastSaved)+'). Tomorrow: paste the same search again, then Compare with previous.':'Save today\'s market to start tracking changes.')+'</div>');
     $('pasteAgain').onclick=function(){$('pasteBox').value='';setStage('paste')};
     if($('addPage'))$('addPage').onclick=function(){S.appendNext=true;$('addPage').textContent='Now press Ctrl + V to add the next page'};
     var nb=$('strip').querySelector('.needsBtn');if(nb)nb.onclick=function(){S.tab='needs';renderPool()};

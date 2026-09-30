@@ -178,9 +178,12 @@ async function taycanSubject(p) {
   check('D: actions read Update search · Market history (Add next page only when SGCarMart has more)', (await text(p, '#pasteAgain')) === 'Update search' && (await p.locator('#addPage').count()) === 0 && (await text(p, '#strip .hist summary')) === 'Market history');
   // Snapshot saving lives in the parsed-results strip: paste = appraise now, Save snapshot = track the market later.
   const dl = p.waitForEvent('download');
+  check('D: first run says how tracking starts; daily labels', (await text(p, '#strip .histhint')) === "Save today's market to start tracking changes." && (await p.locator('#pulse:not([hidden])').count()) === 0);
   await p.click('#strip .hist summary'); // Market history ▾
+  check('D: Market history actions read Save today\'s market · Compare with previous', /^Save today's market/.test(await text(p, '#saveSnap')) && (await text(p, 'label[for="snapFile"]')) === 'Compare with previous');
   await p.click('#saveSnap');
   const file = await dl;
+  check('D: after saving, the cue points to tomorrow', /^Saved today's market \(\d{4}-\d{2}-\d{2}\)\. Tomorrow: paste the same search again, then Compare with previous\.$/.test(await text(p, '#strip .histhint')));
   const snapPath = out + 'snapshot-taycan.json';
   await file.saveAs(snapPath);
   const snap = JSON.parse(readFileSync(snapPath, 'utf8'));
@@ -196,6 +199,7 @@ async function taycanSubject(p) {
   await p.setInputFiles('#snapFile', snapPath);
   await p.waitForSelector('#pulse:not([hidden])');
   const pulse = await text(p, '#pulse');
+  check('D: with a comparison loaded the cue disappears and the Pulse leads', (await p.locator('#strip .histhint').count()) === 0 && /changes since previous/.test(pulse));
   check('D: pulse shows price reduction', /Price reductions\s*1/.test(pulse));
   check('D: disappeared listing = No longer listed, not sold', /No longer listed\s*1/.test(pulse) && /Marked sold by SGCarMart\s*1/.test(pulse));
   check('D: pulse has a market read and never claims demand', /Market read/i.test(pulse) && !/demand/i.test(pulse.replace('not sales or demand', '').replace('not proof of low demand', '')));

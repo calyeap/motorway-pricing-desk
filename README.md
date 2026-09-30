@@ -61,7 +61,7 @@ npm run e2e        # browser run: V0.6 regression, Taycan flow, E200 full loop, 
 - **Blank costs:** V0.6 maths unchanged, but the maximum is marked provisional with an amber warning on the rail and the Decision Summary.
 - **Privacy:** first cell only, typed and allowlisted values, free text never read from the next line; pdf.js served from `vendor/`.
 - **Flow:** sticky Back / Continue on every stage; final offer (owner) is separate from the starting offer (dealer); exceptions-only filter; "Why this comp?"; owner summary replaces the external-AI brief.
-- **Market Pulse (manual):** "Save snapshot" in the parsed-results strip downloads a snapshot JSON (market data only, no subject car). "Compare with a saved snapshot" diffs by a price-free identity (title + registration + dealer, mileage as check). Absent = *no longer listed*; only SGCarMart's own status = *sold*. Partial or different coverage → loud warning, absences not classified.
+- **Market Pulse (manual, daily):** the dealer searches the same SGCarMart market each day. "Market history → Save today's market" downloads a snapshot JSON (market data only, no subject car); the next day "Compare with previous" diffs by a price-free identity (title + registration + dealer, mileage as check). Absent = *no longer listed*; only SGCarMart's own status = *sold*. Partial or different coverage → loud warning, absences not classified.
 - **No auto-scraping, no backend, no storage:** the app makes no network requests for data; a test enforces it.
 
 ## NEXT — deferred until Vendi validates the core appraisal workflow
