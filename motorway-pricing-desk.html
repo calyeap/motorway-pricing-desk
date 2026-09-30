@@ -394,6 +394,31 @@ details.story .q b{font-weight:600;color:var(--ink2)}
   .obs.x{display:none}
   .more{display:inline}
   .adv ol.x{display:none}
+  /* Phone pass (Impeccable #1–4). Sizes, hit areas and contrast only; desktop rules above 720px are untouched. */
+  :root{--unit:#6B6B6B;--delta:#6B6B6B}
+  .pulse{padding:12px 14px}
+  .pulse table{width:100%}
+  .pulse td{white-space:normal;padding-right:10px;overflow-wrap:anywhere}
+  .pulse td.n{white-space:nowrap;padding-right:0}
+  .pulse .read{font-size:15px;overflow-wrap:anywhere}
+  .pulse .warn,.pulse ul,.pulse details{overflow-wrap:anywhere;font-size:13px}
+  .fld{grid-template-columns:minmax(0,1fr) 14px minmax(128px,42%)}
+  .fld label{font-size:14px}
+  .fld input{font-size:16px;min-height:44px;padding:8px 10px}
+  .btn{min-height:48px}
+  .link{font-size:13px;display:inline-flex;align-items:center;min-height:44px}
+  .band .details{display:inline-flex;align-items:center;min-height:44px}
+  .strip .end{gap:4px 16px}
+  .tab{padding:12px 2px;min-height:44px}
+  details.story summary{display:flex;align-items:center;min-height:44px;font-size:11px;padding:0}
+  .sub{font-size:13px}
+  .rv .s{font-size:12px}
+  .mc .g .eyebrow{font-size:11px}
+  .mc .g .d{font-size:12px}
+  .split .x{font-size:12px}
+  .led th.sec{font-size:12px}
+  .maxchip .eyebrow{font-size:11px}
+  .bigin input{min-height:52px}
 }
 @media (max-width:720px) and (prefers-reduced-motion:no-preference){.fadein{animation:none}}
 </style>

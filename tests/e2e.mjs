@@ -239,10 +239,28 @@ async function taycanSubject(p) {
   check('E: card include toggle ≥ 44 px', tog[0] >= 44 && tog[1] >= 44, tog.join('×'));
   check('E: sticky Continue to Comparison on phone', await inViewport(p, '#actNext') && (await text(p, '#actNext')).includes('Comparison'));
   check('E: no horizontal scroll (pool)', await noHScroll(p));
+  // Impeccable #3/#4: every visible control ≥ 44 px tall on the phone; no text under 11 px (eyebrows) / 12 px (everything else).
+  const small = (page) => page.evaluate(() => {
+    const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !e.closest('[hidden]') && getComputedStyle(e).visibility !== 'hidden'; };
+    const ctl = [...document.querySelectorAll('button, a, input:not([type=checkbox]):not([type=file]), select, summary, label.pill, label.tapck')].filter(vis).map(e => ({ t: (e.innerText || e.id || e.tagName).trim().slice(0, 30), h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44);
+    const txt = [...document.querySelectorAll('body *')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => ({ t: e.textContent.trim().slice(0, 30), fs: parseFloat(getComputedStyle(e).fontSize), eb: !!(e.closest('.eyebrow') || e.closest('summary')) })).filter(x => x.fs < (x.eb ? 11 : 12));
+    return { ctl, txt };
+  });
+  let sm = await small(p);
+  check('E: pool — all controls ≥ 44 px tall', !sm.ctl.length, sm.ctl.map(x => `${x.t} ${x.h}`).join(' | '));
+  check('E: pool — no text under 12 px (eyebrows 11)', !sm.txt.length, sm.txt.map(x => `${x.t} ${x.fs}`).join(' | '));
   await p.screenshot({ path: out + 'v08-pool-390.png', fullPage: true });
   await next(p);
   check('E: phone desk shows cards and sticky Decision CTA with max', await p.isVisible('#mcards .mc') && await inViewport(p, '#actNext') && (await text(p, '#actNext')).includes('Decision') && await p.isVisible('#actMid .maxchip'));
   check('E: no horizontal scroll (desk)', await noHScroll(p));
+  // Impeccable #2: money inputs are real thumb targets and never trigger iOS zoom (≥ 16 px text).
+  const inp = await p.evaluate(() => ['resale', 'recon', 'other', 'profit', 'offer'].map(id => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return [id, Math.round(r.height), Math.round(r.width), parseFloat(getComputedStyle(e).fontSize)]; }));
+  check('E: desk money inputs ≥ 44 px tall, ≥ 128 px wide, 16 px text', inp.every(x => x[1] >= 44 && x[2] >= 128 && x[3] >= 16), inp.map(x => x.join(':')).join(' '));
+  sm = await small(p);
+  check('E: desk — all controls ≥ 44 px tall', !sm.ctl.length, sm.ctl.map(x => `${x.t} ${x.h}`).join(' | '));
+  check('E: desk — no text under 12 px (eyebrows 11)', !sm.txt.length, sm.txt.map(x => `${x.t} ${x.fs}`).join(' | '));
+  const cs = await p.evaluate(() => { const g = getComputedStyle(document.documentElement); return [g.getPropertyValue('--delta').trim(), g.getPropertyValue('--unit').trim()]; });
+  check('E: phone deltas and units use muted #6B6B6B (≥ 4.5:1)', cs.every(c => c.toUpperCase() === '#6B6B6B'), cs.join(' '));
   await setVal(p, '#resale', '330000');
   await p.screenshot({ path: out + 'v08-desk-390.png', fullPage: true });
   await next(p);
@@ -253,7 +271,43 @@ async function taycanSubject(p) {
   const maxFont = await p.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#decBody .dmax .big')).fontSize));
   check('E: large Maximum Acquisition on phone', maxFont >= 30, String(maxFont));
   await p.screenshot({ path: out + 'v08-decision-390.png', fullPage: true });
+  sm = await small(p);
+  check('E: decision — all controls ≥ 44 px tall', !sm.ctl.length, sm.ctl.map(x => `${x.t} ${x.h}`).join(' | '));
+  check('E: decision — no text under 12 px (eyebrows 11)', !sm.txt.length, sm.txt.map(x => `${x.t} ${x.fs}`).join(' | '));
   check('E: no page errors', !p.errors.length, p.errors.join(' | '));
+  await p.context().close();
+}
+
+// ---------------------------------------------------------------- E2. Phone (~390 px): Market Pulse must never overflow (Impeccable #1)
+// Worst case is the coverage-mismatch pulse: longest row label + longest "Market read" + amber warning. Uses the Taycan snapshot saved in D.
+{
+  const p = await newPage({ width: 390, height: 844 });
+  await p.goto(base + 'motorway-pricing-desk.html');
+  await taycanSubject(p);
+  await next(p);
+  // Same search, one listing missing, header still says 9 → partial coverage → "Not in this capture (coverage differs)".
+  await paste(p, TAYCAN.replace(/Porsche Taycan Electric 4S Performance Battery Plus\r?\nPorsche Taycan Electric 4S Performance Battery Plus\r?\n\$458,000[\s\S]*?Compare\r?\n/, ''));
+  await p.waitForSelector('#stPool:not([hidden])');
+  await p.setInputFiles('#snapFile', out + 'snapshot-taycan.json');
+  await p.waitForSelector('#pulse:not([hidden])');
+  const pulse = await text(p, '#pulse');
+  check('E2: coverage-mismatch pulse rendered on phone', pulse.includes('Not in this capture (coverage differs)') && pulse.includes('Not comparable — capture coverage differs'));
+  check('E2: no horizontal scroll with Market Pulse open (390 px)', await noHScroll(p), String(await p.evaluate(() => document.documentElement.scrollWidth)));
+  const over = await p.evaluate(() => [...document.querySelectorAll('#pulse, #pulse *')].filter(e => e.getBoundingClientRect().right > window.innerWidth + 0.5).map(e => e.tagName + '.' + e.className + ' ' + Math.round(e.getBoundingClientRect().right)));
+  check('E2: no Market Pulse element extends past the viewport', !over.length, over.slice(0, 5).join(' | '));
+  const figs = await p.evaluate(() => [...document.querySelectorAll('#pulse td.n')].map(td => { const r = td.getBoundingClientRect(); return r.right <= window.innerWidth && r.width > 0; }));
+  check('E2: every pulse figure is on-screen', figs.length >= 9 && figs.every(Boolean), String(figs.length));
+  check('E2: sticky Continue still fully visible with pulse open', await inViewport(p, '#actNext'));
+  await p.evaluate(() => document.querySelector('#pulse').scrollIntoView());
+  await p.screenshot({ path: out + 'v08-pulse-390.png', fullPage: false });
+  // Comparable pulse (full coverage) on the same phone must also fit.
+  await p.click('#pasteAgain');
+  await paste(p, TAYCAN.replace('$378,800', '$368,800').replace(/9 Vehicles/g, '9 Vehicles'));
+  await p.waitForSelector('#stPool:not([hidden])');
+  await p.setInputFiles('#snapFile', out + 'snapshot-taycan.json');
+  await p.waitForSelector('#pulse:not([hidden])');
+  check('E2: comparable pulse fits too', (await text(p, '#pulse')).includes('Active listings in this capture') && await noHScroll(p));
+  check('E2: no page errors', !p.errors.length, p.errors.join(' | '));
   await p.context().close();
 }
 
