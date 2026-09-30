@@ -28,8 +28,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--plex);
 button,input,select{font:inherit;color:inherit}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 .mont{font-family:var(--mont)}
-.eyebrow{font-family:var(--mont);font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.eyebrow.onDark{color:var(--on-dark-muted)}
+.eyebrow{font-family:var(--mont);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.eyebrow.onDark{color:var(--hairline)}
 .h1{font-family:var(--mont);font-size:24px;font-weight:700;margin:6px 0 0;letter-spacing:-.01em}
 .h2{font-family:var(--mont);font-size:15px;font-weight:700;margin:0}
 .lede{font-size:15px;color:var(--ink2);margin:8px 0 0;max-width:62ch;line-height:1.5}
@@ -157,6 +157,13 @@ button,input,select{font:inherit;color:inherit}
 .strip .counts>span{display:flex;gap:8px;align-items:center;white-space:nowrap}
 .strip .counts b{font-weight:500}
 .strip .end{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.strip .hist{display:inline-flex;gap:12px;align-items:center;flex-wrap:wrap}
+.strip .hist summary{list-style:none}
+.strip .hist summary::-webkit-details-marker{display:none}
+.strip .hist summary::after{content:' ▾';font-size:10px}
+.strip .hist[open] summary::after{content:' ▴'}
+.strip .needsBtn{font-size:13.5px;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
+.strip .needsBtn b{font-weight:500}
 .wrapP{padding:20px var(--pad) 24px}
 .panel{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;min-width:0;border-radius:var(--r-panel);overflow:hidden}
 .tabs{display:flex;align-items:center;gap:12px;padding:8px 16px 0;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
@@ -253,7 +260,7 @@ a.name:hover,a.cname:hover{text-decoration:underline;text-underline-offset:2px}
 .dec{max-width:920px;margin:0 auto;padding:40px 32px 48px}
 .step{display:grid;grid-template-columns:72px minmax(0,1fr);gap:0 24px;padding:26px 0;border-top:1px solid var(--hairline)}
 .step:first-child{border-top:0;padding-top:0}
-.step .no{font-family:var(--mont);font-size:11px;font-weight:500;letter-spacing:.12em;color:var(--na);padding-top:4px;line-height:1.4}
+.step .no{font-family:var(--mont);font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--muted);padding-top:4px;line-height:1.4}
 .step h2{font-family:var(--mont);font-size:17px;font-weight:700;margin:0 0 12px}
 .tldr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
 .tldr>div{border-left:2px solid var(--hairline);padding-left:14px}
@@ -312,7 +319,7 @@ body{padding-bottom:76px}
 .pill.tog input{width:16px;height:16px;accent-color:var(--ink);margin:0;cursor:pointer}
 .mobile-only{display:none}
 details.story{margin-top:6px;font-size:12px;color:var(--unit);white-space:normal;max-width:380px}
-details.story summary{cursor:pointer;font-family:var(--mont);font-size:10.5px;font-weight:500;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+details.story summary{cursor:pointer;font-family:var(--mont);font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink2);padding:2px 0}
 details.story .q{margin:4px 0 0;padding-left:8px;border-left:2px solid var(--rule)}
 details.story .q b{font-weight:600;color:var(--ink2)}
 details.story .q>div{margin-top:3px}
@@ -1658,28 +1665,33 @@ if(typeof module!=='undefined')module.exports=MPD;
   function renderStrip(){
     var c=counts(),st=S.listings.length-c.needs-c.sold,kinds={};
     S.ignored.forEach(function(g){kinds[g.kind]=(kinds[g.kind]||0)+1});
+    var N=S.listings.length,total=S.header&&S.header.total?S.header.total:null,more=!S.demo&&total!==null&&N<total;
+    // Dealer-facing summary only. Parser detail (ignored page blocks, block kinds) stays internal.
     $('strip').innerHTML=
-      '<div><div class="eyebrow">Parsed from your paste'+(S.pages>1?'s ('+S.pages+' pages)':'')+'</div><div class="big num">'+S.listings.length+' <span>vehicle listings detected'+(S.header&&S.header.total?' · SGCarMart shows '+S.header.total:'')+'</span></div></div>'+
+      '<div><div class="eyebrow">Parsed from your paste'+(S.pages>1?' ('+S.pages+' pages)':'')+'</div><div class="big num">'+N+' <span>listings parsed'+(more?' · '+total+' on SGCarMart':'')+'</span></div></div>'+
       '<div class="counts">'+
-        '<span><span class="dot sage"></span><b class="num">'+st+'</b> active, ready to review</span>'+
-        (c.needs?'<span class="amb"><span class="dot amb"></span><b class="num">'+c.needs+'</b> need dealer input</span>':'<span><span class="dot"></span><b class="num">0</b> need dealer input</span>')+
-        (c.own?'<span class="amb"><span class="dot amb"></span><b class="num">'+c.own+'</b> Motorway stock · context only</span>':'')+
-        (c.sold?'<span><span class="dot"></span><b class="num">'+c.sold+'</b> sold · kept out of the shortlist</span>':'')+
-        '<span><span class="dot"></span><b class="num">'+S.ignored.length+'</b> page blocks ignored</span>'+
+        '<span><span class="dot sage"></span><b class="num">'+st+'</b> active</span>'+
+        (c.sold?'<span><span class="dot"></span><b class="num">'+c.sold+'</b> sold excluded</span>':'')+
+        (c.own?'<span class="amb"><span class="dot amb"></span><b class="num">'+c.own+'</b> Motorway stock</span>':'')+
+        (c.needs?'<button class="link amb needsBtn" type="button" data-tab="needs"><span class="dot amb"></span><b class="num">'+c.needs+'</b> listing'+pl(c.needs,'','s')+' need'+pl(c.needs,'s','')+' review</button>':'')+
       '</div>'+
-      '<div class="end"><button class="link" type="button" id="pasteAgain">Paste again</button>'+(S.demo?'':'<button class="link" type="button" id="addPage">Add another page</button><span class="vsep"></span><button class="link" type="button" id="saveSnap">Save snapshot'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with a saved snapshot</label>')+'</div>';
+      '<div class="end">'+(more?'<button class="link" type="button" id="addPage">Add next page</button>':'')+'<button class="link" type="button" id="pasteAgain">Update search</button>'+
+        (S.demo?'':'<span class="vsep"></span><details class="hist"><summary class="link">Market history</summary><button class="link" type="button" id="saveSnap">Save snapshot'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with saved snapshot</label></details>')+'</div>';
     $('pasteAgain').onclick=function(){$('pasteBox').value='';setStage('paste')};
     if($('addPage'))$('addPage').onclick=function(){S.appendNext=true;$('addPage').textContent='Now press Ctrl + V to add the next page'};
+    var nb=$('strip').querySelector('.needsBtn');if(nb)nb.onclick=function(){S.tab='needs';renderPool()};
     if($('saveSnap'))$('saveSnap').onclick=downloadSnapshot;
   }
   function renderPool(){
     if(!S.pool)return;
     fillPoolFilters();renderStrip();renderPulse('pulse',false);
     var c=counts();
-    var tabs=[['short','Suggested shortlist',c.short],['plaus','Wider matches',c.plaus],['all','All parsed',c.all],['needs','Needs input',c.needs],['ign','Ignored',S.ignored.length]];
+    var tabs=[['short','Suggested shortlist',c.short],['plaus','Wider matches',c.plaus],['all','All listings',c.all]];
+    if(c.needs)tabs.push(['needs','Needs review',c.needs]);
+    if(!tabs.some(function(t){return t[0]===S.tab}))S.tab='short';
     $('poolTabs').innerHTML=tabs.map(function(t){return '<button class="tab'+(S.tab===t[0]?' on':'')+'" type="button" role="tab" aria-selected="'+(S.tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'<span class="c num">'+t[2]+'</span></button>'}).join('');
     var subj=S.subject,fk=S.pool.family;
-    var titles={short:'Suggested shortlist',plaus:'Wider matches',all:'All parsed listings',needs:'Needs dealer input',ign:'Ignored page text'};
+    var titles={short:'Suggested shortlist',plaus:'Wider matches',all:'All listings',needs:'Needs review',ign:'Ignored page text'};
     $('poolTitle').textContent=titles[S.tab];
     $('whyBtn').hidden=S.tab!=='short';
     var regWin=subj.reg?monYr(isoAdd(subj.reg,-18))+' – '+monYr(isoAdd(subj.reg,18)):'any date';
@@ -1714,7 +1726,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var ns=g('short').length;
     return [
       ['In shortlist · '+ns,g('short'),Object.keys(S.inc).filter(function(id){return S.inc[id]&&tierOf(byId(id))==='short'}).length+' included'],
-      ['Needs dealer input · '+g('needs').length,g('needs'),'two source values conflict — pick one; nothing is guessed'],
+      ['Needs review · '+g('needs').length,g('needs'),'two source values conflict — pick one; nothing is guessed'],
       ['Wider matches · '+g('plausible').length+' more',g('plausible'),'same model family · original COE · registered within 3 years · exact values accepted as read'],
       ['Set aside · '+aside.length,aside,'sold, different model or body style, renewed or short COE, or registered far apart']
     ];
@@ -1739,7 +1751,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       if(g[0]!==null){h+='<tr class="tier"><td colspan="8">'+esc(g[0])+'<span>'+esc(g[2]||'')+'</span></td></tr>';if(g[1].length)cards+='<div class="eyebrow" style="margin-top:6px">'+esc(g[0])+'</div>'}
       g[1].forEach(function(l){any=true;h+=row(l,depMed,'pool');cards+=card(l,depMed,'pool')});
     });
-    if(S.tab==='all'&&S.ignored.length)h+='<tr class="tier"><td colspan="8">Ignored page text · '+S.ignored.length+' blocks<span><button class="link" type="button" data-tab="ign">Show ignored blocks</button></span></td></tr>';
+    if(false)h+='<tr class="tier"><td colspan="8">Ignored page text · '+S.ignored.length+' blocks<span><button class="link" type="button" data-tab="ign">Show ignored blocks</button></span></td></tr>';
     var fam=S.pool.family,noFam=S.tab==='short'&&!S.listings.some(function(l){return tierOf(l)==='short'||tierOf(l)==='plausible'});
     var empty=S.tab==='needs'?'Nothing needs your input. Every listing was read without a conflict.':
       noFam?'No active listing in this paste matches this car’s model family (“'+esc((fam.make+' '+fam.fam).trim())+'”). Check the SGCarMart search is for the same model, then paste again. Everything parsed is under All parsed.':S.excOnly?'No exceptions in this view.':'No listings match these filters.';

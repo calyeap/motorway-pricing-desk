@@ -172,8 +172,11 @@ async function taycanSubject(p) {
   await paste(p, TAYCAN);
   await p.waitForSelector('#stPool:not([hidden])');
   check('D: pool tab reads "Wider matches"', (await text(p, 'button[data-tab="plaus"]')).startsWith('Wider matches') && !(await text(p, '#stPool')).includes('Plausible'));
+  check('D: dealer-facing strip: parsed / active / sold / Motorway stock, no parser detail, no Needs/Ignored tabs at 0', /9 listings parsed/.test(await text(p, '#strip')) && /5\s*active/.test(await text(p, '#strip')) && /4\s*sold excluded/.test(await text(p, '#strip')) && /1\s*Motorway stock/.test(await text(p, '#strip')) && !/ignored|need review|page blocks/i.test(await text(p, '#strip')) && (await p.locator('#poolTabs .tab').count()) === 3 && !(await text(p, '#poolTabs')).includes('Ignored'));
+  check('D: actions read Update search · Market history (Add next page only when SGCarMart has more)', (await text(p, '#pasteAgain')) === 'Update search' && (await p.locator('#addPage').count()) === 0 && (await text(p, '#strip .hist summary')) === 'Market history');
   // Snapshot saving lives in the parsed-results strip: paste = appraise now, Save snapshot = track the market later.
   const dl = p.waitForEvent('download');
+  await p.click('#strip .hist summary'); // Market history ▾
   await p.click('#saveSnap');
   const file = await dl;
   const snapPath = out + 'snapshot-taycan.json';
@@ -212,6 +215,7 @@ async function taycanSubject(p) {
   const snapE = await p.evaluate(() => { const s = window.__mpd.state; return null; });
   const eSnapPath = out + 'snapshot-e200.json';
   const dl2 = p.waitForEvent('download');
+  await p.click('#strip .hist summary'); // Market history ▾
   await p.click('#saveSnap');
   await (await dl2).saveAs(eSnapPath);
   await p.click('#pasteAgain');
