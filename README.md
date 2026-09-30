@@ -52,9 +52,12 @@ npm run e2e        # browser run: V0.6 regression, Taycan flow, E200 full loop, 
 ## V0.8 (bounded hardening pass)
 
 - **Own stock:** Motor-Way / Motorway dealer names → "Motorway stock", unticked, never independent evidence. "Possible same car" when registration date, exact variant, COE left and owner count match this car.
-- **Thin market:** evidence is split into exact-variant independent active / adjacent variant / Motorway stock / sold. Fewer than 3 exact independent comps → **THIN MARKET / REVIEW** with reasons.
-- **Variants:** exact / adjacent / different body style. Seat layouts like `4+1` ignored. No scores.
-- **Source vs derived:** transfers are source truth; owners are labelled "(derived)"; original/renewed COE is labelled "(inferred)".
+- **Thin market:** evidence is split into exact-variant independent active / related variant / Motorway stock / sold. Fewer than 3 exact independent comps → **THIN MARKET / REVIEW** with reasons.
+- **Variants:** exact / related (shown as "Related variant — … · not the same spec"; included but never counted as exact) / different body style. Seat layouts like `4+1` ignored. No scores, no price-ratio or OMV rule (internal class name stays `adjacent`).
+- **Source vs derived:** transfers are source truth; owners = transfers + 1 is a dealer-confirmed rule (Vendi), still labelled "(derived)"; original/renewed COE is labelled "(inferred)".
+- **OMV:** shown as context only ("OMV context only · not used in pricing maths"). Never decides comp quality or adjusts any figure. Real SGCarMart pastes carry no per-listing OMV.
+- **Market pace (dealer-validated evidence, no score):** SGCarMart "Posted" date shown per listing as "Posted 28 Sep · 2 days ago" (days to the capture date, not true time on market). Market Pulse counts are "Active listings in this capture"; price cuts are seller pressure, not proof of low demand; gone ≠ sold unless SGCarMart marks it sold.
+- **Holding risk → buffer:** the fourth input is "Target profit buffer" (a dollar amount, dealer's call). Softer asking evidence → "consider a larger profit buffer"; mixed → "review holding risk". Text only: the maximum never changes automatically. Formula unchanged: resale − recon − other − buffer.
 - **Blank costs:** V0.6 maths unchanged, but the maximum is marked provisional with an amber warning on the rail and the Decision Summary.
 - **Privacy:** first cell only, typed and allowlisted values, free text never read from the next line; pdf.js served from `vendor/`.
 - **Flow:** sticky Back / Continue on every stage; final offer (owner) is separate from the starting offer (dealer); exceptions-only filter; "Why this comp?"; owner summary replaces the external-AI brief.

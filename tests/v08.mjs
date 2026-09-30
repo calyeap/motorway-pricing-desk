@@ -1,5 +1,6 @@
 // V0.8 acceptance tests (core only; browser flow is in e2e.mjs). node tests/v08.mjs
-import { loadCore, suite, fixture, pdfLines, AS_AT } from './lib.mjs';
+import { loadCore, suite, fixture, pdfLines, AS_AT, root } from './lib.mjs';
+import { readFileSync } from 'node:fs';
 
 const M = loadCore();
 const t = suite();
@@ -28,7 +29,7 @@ t.ok('own: E200 Motor-Way listing detected', EL.some(l => l.own && /motor-?way/i
 t.eq('variant: seat configuration 4+1 is dropped from variant words', M.familyKey({ make: 'PORSCHE', model: 'TAYCAN 4S 4+1' }).variant, ['4s']);
 const TPool = M.buildPool(TAYCAN, TL);
 t.eq('variant: classes on Taycan (exact / adjacent / different)', [1, 2, 3, 4, 5].map(id => byId(TL, id).vclass), ['adjacent', 'adjacent', 'different', 'adjacent', 'exact']);
-t.eq('variant: adjacent reason names the extra spec', byId(TL, 1).vlabel, 'Adjacent variant — Performance Battery Plus');
+t.eq('variant: related-variant label names the extra spec and says not the same spec', byId(TL, 1).vlabel, 'Related variant — Performance Battery Plus · not the same spec');
 t.eq('variant: Sunroof alone is adjacent, not equal', M.variantClass('Porsche Taycan Electric 4S Sunroof', M.familyKey(TAYCAN)).cls, 'adjacent');
 t.eq('variant: Cross Turismo is a different body style', byId(TL, 3).vlabel, 'Different body style — Cross Turismo');
 t.ok('variant: GTS and Turbo are not exact for a 4S', ['Porsche Taycan GTS', 'Porsche Taycan Turbo S', 'Porsche Taycan Turbo'].every(x => M.variantClass(x, M.familyKey(TAYCAN)).cls !== 'exact'));
@@ -48,7 +49,7 @@ const mk = M.market(tick, TL);
 t.eq('thin: default ticks = the 3 adjacent PB+ listings', tick.map(l => l.id).sort(), [1, 2, 4]);
 t.eq('thin: evidence split', [mk.exactIndependent, mk.adjacent, mk.ownTicked, mk.ownParsed, mk.soldParsed], [0, 3, 0, 1, 4]);
 t.ok('thin: THIN MARKET flagged despite 3 comps', mk.thin === true);
-t.ok('thin: reasons are visible and specific', mk.reasons.some(r => /0 exact-variant independent active/.test(r)) && mk.reasons.some(r => /adjacent/.test(r)) && mk.reasons.some(r => /Motorway stock/.test(r)));
+t.ok('thin: reasons are visible and specific', mk.reasons.some(r => /0 exact-variant independent active/.test(r)) && mk.reasons.some(r => /related variants — not the same spec/.test(r)) && mk.reasons.some(r => /Motorway stock/.test(r)));
 const withOwn = M.market([...tick, byId(TL, 5)], TL);
 t.ok('own: ticking Motorway stock never counts as independent', withOwn.exactIndependent === 0 && withOwn.ownTicked === 1);
 t.ok('own: excluded from independent median by default', M.evidence(tick).med === 378800 && !tick.includes(byId(TL, 5)));
@@ -160,5 +161,22 @@ t.ok('identity: duplicate keys → "match needs review"', DA.needsReview.length 
 
 // Own stock kept out of market pulse medians
 t.ok('pulse: Motorway stock excluded from pulse medians', D.ownExcluded >= 1);
+
+// ================================================================ H. Dealer-validated logic (Vendi): owners, related variants, OMV, pace, buffer
+const APP = readFileSync(root + 'motorway-pricing-desk.html', 'utf8');
+t.ok('owners: transfers + 1 is a dealer-confirmed rule, no "not yet confirmed" wording left', /dealer-confirmed rule/.test(APP) && !/not yet confirmed|to be confirmed by Motorway/.test(APP));
+t.ok('owners: label stays "(derived)"', /Owners \(derived\)/.test(APP));
+t.ok('variant: OMV never changes the class (same OMV as the subject is still related)', M.variantClass('Porsche Taycan Electric 4S Performance Battery Plus', M.familyKey({ ...TAYCAN, omv: 136610 })).cls === 'adjacent');
+t.ok('variant: no asking-price ratio rule — class comes from the title only', M.variantClass('Porsche Taycan Electric 4S', M.familyKey(TAYCAN)).cls === 'exact' && !/0\.9|1\.1|10 ?%/.test(String(M.variantClass)));
+t.eq('pace: SGCarMart Posted date is read for every Taycan listing', TL.map(l => l.posted), ['2026-09-28', '2026-09-25', '2026-09-24', '2026-09-22', '2026-09-17', '2026-08-21', '2026-08-04', '2026-07-18', '2026-07-13']);
+t.ok('pace: Posted is shown as "days ago", never as time on market', /Posted .*days ago/.test(APP) && !/time on market|days on market|days listed/i.test(APP.replace(/not true time on market/g, '')));
+t.ok('pulse: active count is labelled "in this capture", never "cars sitting in the market"', /Active listings in this capture/.test(APP) && !/sitting in the market/i.test(APP));
+t.ok('pulse: price cuts are seller pressure, not low-demand proof; gone ≠ sold', /Price cuts show seller pressure, not proof of low demand/.test(APP) && /Gone ≠ sold unless SGCarMart marks it sold/.test(APP));
+t.ok('pulse: no numeric demand score in the read', !/score/i.test(JSON.stringify(R)) && Object.keys(R).every(k => k === 'read' || k === 'why'));
+t.ok('buffer: label is "Target profit buffer" (dollar amount, not a margin %)', /Target profit buffer/.test(APP) && !/Target gross profit|Target margin/.test(APP));
+t.ok('buffer: helper says the desk never changes the maximum', /Use a bigger buffer for a slower-moving car\. The desk never changes the maximum for you\./.test(APP));
+t.ok('buffer: softer → larger buffer, mixed → review holding risk (text only)', /softer asking evidence — consider a larger profit buffer/.test(APP) && /mixed evidence — review holding risk before setting your profit buffer/.test(APP));
+t.eq('buffer: economics() ignores market pulse (same inputs → same max, no pulse argument)', [M.economics({ resale: 330000, recon: null, other: null, profit: 5000, offer: null }).max, M.economics.length], [325000, 1]);
+t.ok('omv: caption says context only, never a valuation basis', /OMV context only · not used in pricing maths/.test(APP) && !/factory spec/i.test(APP));
 
 process.exit(t.done() ? 1 : 0);

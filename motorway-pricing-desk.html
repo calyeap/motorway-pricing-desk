@@ -555,8 +555,10 @@ details.story .q b{font-weight:600;color:var(--ink2)}
           <div class="fld"><label for="resale">Expected resale price</label><span class="op"></span><input class="num" id="resale" type="text" inputmode="numeric" autocomplete="off"></div>
           <div class="fld"><label for="recon">Reconditioning / repairs</label><span class="op">−</span><input class="num" id="recon" type="text" inputmode="numeric" autocomplete="off"></div>
           <div class="fld"><label for="other">Other costs</label><span class="op">−</span><input class="num" id="other" type="text" inputmode="numeric" autocomplete="off"></div>
-          <div class="fld" style="border-bottom:0"><label for="profit">Target gross profit</label><span class="op">−</span><input class="num" id="profit" type="text" inputmode="numeric" autocomplete="off"></div>
+          <div class="fld" style="border-bottom:0"><label for="profit">Target profit buffer</label><span class="op">−</span><input class="num" id="profit" type="text" inputmode="numeric" autocomplete="off"></div>
         </div>
+        <div class="sub" id="bufferHelp" style="margin-top:6px">Your call. Use a bigger buffer for a slower-moving car. The desk never changes the maximum for you.</div>
+        <div class="sub amb" id="pulseHint" style="margin-top:4px" hidden></div>
         <div class="sub num" id="resaleNote" style="margin-top:6px"></div>
         <div style="margin-top:6px"><button class="link" type="button" id="clear">Clear inputs</button></div>
       </div>
@@ -866,7 +868,7 @@ var MPD = (function(){
     return {
       name:[make,model].filter(Boolean).join(' ')||'Car not identified', make:make, model:model,
       reg:reg, km:km, transfers:tr,
-      owners:tr===null?null:tr+1, ownersDerived:tr!==null,           // owners = transfers + 1: derived, rule to be validated by Motorway
+      owners:tr===null?null:tr+1, ownersDerived:tr!==null,           // owners = transfers + 1: derived, dealer-confirmed rule (Vendi)
       coeM:coeM, renewed:renewed, coeStatusInferred:!!(reg&&exp),   // original vs renewed is inferred from the two dates
       coeExpiry:exp, roadTaxExpiry:g('roadTaxExpiry'),
       omv:g('omv'), arf:g('arf'), qp:g('qp'), parf:g('parf'), parfElig:g('parfElig'), coeCat:g('coeCat'),
@@ -898,7 +900,7 @@ var MPD = (function(){
     var body=words.filter(function(w){return tokens(w).some(function(t){return BODY_TOK[t]})});
     if(body.length)return {cls:'different',label:'Different body style — '+body.join(' '),extra:words};
     if(!extra.length&&!missing.length)return {cls:'exact',label:'Exact variant'+(fk.variant.length?' — '+fk.variant.join(' ').toUpperCase().replace(/([A-Z])([A-Z]+)/g,function(_,a,b){return /\d/.test(_)?_:a+b.toLowerCase()}):''),extra:[]};
-    return {cls:'adjacent',label:'Adjacent variant — '+(words.length?words.join(' '):'title lacks “'+missing.join(' ')+'”'),extra:words};
+    return {cls:'adjacent',label:'Related variant — '+(words.length?words.join(' '):'title lacks “'+missing.join(' ')+'”')+' · not the same spec',extra:words};
   }
   function distance(l,s){
     var d=0;
@@ -979,7 +981,7 @@ var MPD = (function(){
     var same=act.filter(function(l){return l.possibleSame}).length;
     var thin=exact<3,r=[];
     if(thin)r.push(exact+' exact-variant independent active comp'+(exact===1?'':'s')+' ticked (3 needed for a like-for-like read)');
-    if(adj)r.push(adj+' ticked comp'+(adj===1?' is an adjacent variant':'s are adjacent variants')+' — context, not like-for-like');
+    if(adj)r.push(adj+' ticked comp'+(adj===1?' is a related variant':'s are related variants')+' — not the same spec, weigh with care');
     if(ownP)r.push('Motorway stock ('+ownP+') is not independent evidence'+(ownT?' — '+ownT+' ticked and included in the figures by the dealer':' — excluded'));
     if(same)r.push(same+' ticked listing'+(same===1?' may be':'s may be')+' this same car');
     if(soldP)r.push(soldP+' sold listing'+(soldP===1?' has':'s have')+' no asking price — not evidence');
@@ -988,7 +990,7 @@ var MPD = (function(){
   // Blank input = not entered (null). Costs left blank count as $0, which makes the maximum provisional.
   function economics(v){
     var r0=v.recon||0,o0=v.other||0,p0=v.profit||0,blanks=[];
-    if(v.recon===null)blanks.push('reconditioning');if(v.other===null)blanks.push('other costs');if(v.profit===null)blanks.push('target profit');
+    if(v.recon===null)blanks.push('reconditioning');if(v.other===null)blanks.push('other costs');if(v.profit===null)blanks.push('target profit buffer');
     var max=v.resale===null?null:v.resale-r0-o0-p0;
     var gp=(v.resale===null||v.offer===null)?null:v.resale-r0-o0-v.offer;
     return {max:max,gp:gp,r0:r0,o0:o0,p0:p0,blanks:blanks,provisional:v.resale!==null&&blanks.length>0};
@@ -1139,6 +1141,20 @@ if(typeof module!=='undefined')module.exports=MPD;
   function kmF(n){return Math.round(n).toLocaleString('en-US')}
   function ym(m){return Math.floor(m/12)+'y '+(m%12)+'m'}
   function monYr(iso){if(!iso)return null;var p=iso.split('-');return M.MON[+p[1]-1]+' '+p[0]}
+  // SGCarMart "Posted" date, as read. Days are counted to the capture date; this is not true time on market.
+  function postedStr(l){
+    if(!l.posted)return '';
+    var d=Math.round((S.asAt-M.dateOf(l.posted))/86400000),p=l.posted.split('-');
+    return 'Posted '+(+p[2])+' '+M.MON[+p[1]-1]+(d<0?'':' · '+(d===0?'today':d===1?'1 day ago':d+' days ago'));
+  }
+  // Market Pulse → profit buffer guidance. Text only: the buffer is the dealer's, and economics() never reads this.
+  function bufferHint(){
+    if(!S.diff)return '';
+    var r=M.marketRead(S.diff).read;
+    if(r==='Softer asking evidence')return 'Market Pulse: softer asking evidence — consider a larger profit buffer.';
+    if(r==='Mixed evidence')return 'Market Pulse: mixed evidence — review holding risk before setting your profit buffer.';
+    return '';
+  }
   function kAbbr(n,cur){if(n===null)return '—';var a=Math.abs(n),s=a>=1000?(a/1000).toFixed(a>=100000?0:1).replace(/\.0$/,'')+'k':String(Math.round(a));return (n<0?'−':'')+(cur?'$':'')+s}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   var NA='<span class="na">Not stated</span>';
@@ -1245,6 +1261,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
         '<div class="sec"><div>Registered <b class="num">'+(s.reg?M.fmtISO(s.reg):'<span class="na">n/s</span>')+'</b></div>'+
         '<div>OMV <b class="num">'+(s.omv!==null?money(s.omv):'<span class="na">n/s</span>')+'</b> · ARF <b class="num">'+(s.arf!==null?money(s.arf):'<span class="na">n/s</span>')+'</b></div>'+
+        '<div>OMV context only · not used in pricing maths</div>'+
         (s.qp!==null?'<div>QP <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):'')+'</div>':'')+
         (s.roadTaxExpiry?'<div>Road tax to <b class="num">'+M.fmtISO(s.roadTaxExpiry)+'</b></div>':'')+'</div>'+
         '<button class="link details" type="button" aria-expanded="false">Details ▾</button>'+
@@ -1330,7 +1347,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         (ed?'<span></span>':'<button class="link" type="button" data-edit="'+def.k+'">Edit</button>')+'</div>';
     });
     var s=M.subjectFrom(fieldVals(),kmNow(),S.asAt);
-    h+='<div class="rv derived"><span class="k">Owners (derived)</span><span class="v num">'+(s.owners===null?NA:s.owners)+'<span class="s">derived as transfers + 1 · not on the LTA document · rule to be confirmed by Motorway</span></span><span></span></div>';
+    h+='<div class="rv derived"><span class="k">Owners (derived)</span><span class="v num">'+(s.owners===null?NA:s.owners)+'<span class="s">transfers + 1 · not on the LTA document · dealer-confirmed rule</span></span><span></span></div>';
     h+='<div class="rv derived"><span class="k">COE left</span><span class="v num">'+(s.coeM===null?NA:ym(s.coeM)+' · '+coeWord(s))+'<span class="s">from COE expiry vs today'+(s.coeM!==null?'; original/renewed is inferred from the expiry and registration dates':'')+'</span></span><span></span></div>';
     $('subjRows').innerHTML=h;
     if(S.focusEdit){var el=$('ed_'+S.focusEdit);if(el){el.focus();el.select()}S.focusEdit=null}
@@ -1489,7 +1506,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var R=M.marketRead(D),mv=function(a,b,f){return a===null||b===null?'<span class="na">n/s</span>':f(a)+' → '+f(b)};
     var k=function(n){return money(n).replace(/,\d{3}$/,function(x){return ''})};
     var rows=[
-      ['Active captured listings',D.activeBefore+' → '+D.activeAfter],
+      ['Active listings in this capture',D.activeBefore+' → '+D.activeAfter],
       [D.comparable?'New':'Newly captured',D.added.length],
       [D.comparable?'No longer listed':'Not in this capture (coverage differs)',D.comparable?D.noLongerListed.length:D.notCaptured.length],
       ['Price reductions',D.priceDown.length],['Price increases',D.priceUp.length],['Unchanged',D.unchanged.length],
@@ -1512,6 +1529,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       D.warnings.map(function(w){return '<div class="warn">'+esc(w)+'</div>'}).join('')+
       '<div class="pgrid"><table>'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="n num">'+r[1]+'</td></tr>'}).join('')+'</table>'+
       '<div><div class="eyebrow">Market read</div><div class="read">'+esc(R.read)+'</div><div class="sub" style="margin-top:6px">Why:</div><ul>'+R.why.map(function(w){return '<li>'+esc(w)+'</li>'}).join('')+'</ul>'+
+      '<div class="sub" style="margin-top:6px">Price cuts show seller pressure, not proof of low demand. Gone ≠ sold unless SGCarMart marks it sold.</div>'+
       (D.ownExcluded?'<div class="sub" style="margin-top:6px">Motorway stock is excluded from the pulse medians.</div>':'')+'</div></div>'+(compact?'':detail);
     var c=$('pulseClose');if(c)c.onclick=function(){S.prevSnap=null;S.diff=null;renderPool()};
   }
@@ -1589,7 +1607,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     $('why').hidden=!(S.why&&S.tab==='short');
     $('why').innerHTML='<b>How the shortlist is picked</b> (fixed rules, no AI, no scores):<ol>'+
       '<li>Same model family as this car: title contains “'+esc(fk.fam||'—')+'”'+(fk.make?' and “'+esc(fk.make)+'”':'')+'. Seat layouts such as 4+1 are ignored.</li>'+
-      '<li>Variant class: <b>exact</b> (same variant words'+(fk.variant.length?': '+esc(fk.variant.join(' ').toUpperCase()):'')+'), <b>adjacent</b> (extra or different spec words, e.g. Performance Battery Plus, Sunroof) or <b>different body style</b> (e.g. Cross Turismo — set aside). Exact comes first.</li>'+
+      '<li>Variant class: <b>exact</b> (same variant words'+(fk.variant.length?': '+esc(fk.variant.join(' ').toUpperCase()):'')+'), <b>related</b> (extra or different spec words, e.g. Performance Battery Plus, Sunroof — included but not the same spec) or <b>different body style</b> (e.g. Cross Turismo — set aside). Exact comes first.</li>'+
       '<li>Active listings with an asking price. Sold listings (SGCarMart\'s own sold status) are never suggested.</li>'+
       '<li>Original COE with 2+ years left, registered within 18 months of this car'+(subj.reg?'':' (this car\'s registration date is not stated, so no date window)')+'. Then nearest on mileage, owners and COE left. Top 8.</li>'+
       '<li>Up to 2 with a different COE situation, and any Motorway stock, are shown for context and start unticked.</li></ol>';
@@ -1597,7 +1615,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     renderPoolTable();
     var inc=Object.keys(S.inc).filter(function(id){return S.inc[id]}).length,desk=deskList().length;
     var mk=M.market(counted(),S.listings);
-    $('poolFoot').innerHTML='<span><b class="sage" style="font-weight:600">'+inc+' included</b> · '+mk.exactIndependent+' exact-variant independent · '+mk.adjacent+' adjacent · '+desk+' will open in Comparison</span>'+
+    $('poolFoot').innerHTML='<span><b class="sage" style="font-weight:600">'+inc+' included</b> · '+mk.exactIndependent+' exact-variant independent · '+mk.adjacent+' related · '+desk+' will open in Comparison</span>'+
       (mk.evidence.n?'<span class="r"><span class="'+(mk.thin?'amb':'sage')+'" style="font-weight:600">'+(mk.thin?'THIN MARKET / REVIEW':'Market evidence OK')+'</span></span>':'');
     renderNav();renderActions();
   }
@@ -1709,7 +1727,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(miss.length)n.push(['Not stated · '+miss.join(', ')+' — nothing filled in',l.sold?'':'ns']); // sold rows: gaps are expected, not an exception
     if(l.picked)n.push(['Variant picked by dealer: “'+l.picked+'”','']);
     // Why this comp? plain facts, no score — only for suggested / desk rows.
-    if(inShort&&!l.sold&&S.subject){var w=M.whyComp(l,S.subject).filter(function(x){return !/^(Motorway stock|Possible same car|Adjacent variant|Different body)/.test(x)});if(w.length)n.push(['Why this comp? '+w.join(' · '),'why'])}
+    if(inShort&&!l.sold&&S.subject){var w=M.whyComp(l,S.subject).filter(function(x){return !/^(Motorway stock|Possible same car|Related variant|Different body)/.test(x)});if(w.length)n.push(['Why this comp? '+w.join(' · '),'why'])}
     return n;
   }
   function isException(l,depMed,ctx){return notesList(l,depMed,ctx).some(function(x){return x[1]==='amb'||x[1]==='ns'})}
@@ -1734,7 +1752,7 @@ if(typeof module!=='undefined')module.exports=MPD;
   function row(l,depMed,ctx){
     var s=S.subject,on=!!S.inc[l.id],t=ctx==='pool'?tierOf(l):null,needs=l.status==='needs_input';
     var off=!on&&(ctx==='desk'||t==='short'||t==='aside');
-    var meta='Listing '+l.id+(S.pages>1?' · page '+l.page:'')+(l.sold?' · sold':'')+(l.cond?' · '+esc(l.cond):S.fieldsInSource&&S.fieldsInSource.indexOf('cond')>=0?' · <span class="na">condition not stated</span>':'')+(ctx==='desk'?' · '+(l.dealer?esc(l.dealer):'<span class="na">dealer not stated</span>'):'');
+    var meta='Listing '+l.id+(S.pages>1?' · page '+l.page:'')+(l.sold?' · sold':'')+(l.cond?' · '+esc(l.cond):S.fieldsInSource&&S.fieldsInSource.indexOf('cond')>=0?' · <span class="na">condition not stated</span>':'')+(ctx==='desk'?' · '+(l.dealer?esc(l.dealer):'<span class="na">dealer not stated</span>'):'')+(postedStr(l)?' · '+postedStr(l):'');
     var kmD=(l.km!==null&&s.km!==null)?'<span class="d num'+(Math.abs(l.km-s.km)>=20000?' amb':'')+'">'+delta(l.km-s.km,'','same')+'</span>':'';
     var owD=(l.owners!==null&&s.owners!==null)?'<span class="d num'+(l.owners!==s.owners?' amb':'')+'">'+delta(l.owners-s.owners,'','same')+'</span>':'';
     var coeD='';
@@ -1759,7 +1777,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var tog=ctx==='desk'?'<label class="tapck"><input type="checkbox" data-id="'+l.id+'"'+(on?' checked':'')+' aria-label="Include listing '+l.id+'" style="width:22px;height:22px;accent-color:var(--sage)"></label>':
       l.status==='needs_input'?'<span class="tapck"><span class="ck rev"></span></span>':'<button type="button" class="tapck" data-tog="'+l.id+'" aria-pressed="'+on+'" aria-label="'+(on?'Included — untick':'Not included — tick')+' listing '+l.id+'"><span class="ck'+(on?' on':' no')+'"></span></button>';
     var notes=notesList(l,depMed,ctx).map(function(x){return '<span class="note sub'+(x[1]==='amb'?' amb':'')+'">'+esc(x[0])+'</span>'}).join('');
-    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(l.dealer?' · '+esc(l.dealer):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
+    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(l.dealer?' · '+esc(l.dealer):'')+(postedStr(l)?' · '+postedStr(l):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
       notes+
       '<div class="g">'+
       cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':dd===0?'at median':(dd>0?'+':'')+kAbbr(dd,true),dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
@@ -1832,7 +1850,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px"><span style="font-size:13.5px;color:var(--muted)">Median asking</span><span class="num mont" style="font-size:22px;font-weight:700" id="sMed">'+money(ev.med)+'</span></div>'+
         '<div class="kv"><span class="k">Lowest · highest</span><span class="n num"><span id="sLow">'+money(ev.low)+'</span> · <span id="sHigh">'+money(ev.high)+'</span></span></div>'+
         '<div class="kv" style="border-bottom:0"><span class="k">Median depreciation / yr</span><span class="n num" id="sDep">'+(ev.depMed===null?'<span class="na">Not stated</span>':money(ev.depMed))+'</span></div>'+
-        '<div class="split num"><div><b id="sExact"'+(mk.thin?' class="amb"':'')+'>'+mk.exactIndependent+'</b><span class="x">exact variant, independent</span></div><div><b>'+mk.adjacent+'</b><span class="x">adjacent variant</span></div><div><b>'+mk.ownTicked+'</b><span class="x">Motorway stock ticked</span></div></div>'+
+        '<div class="split num"><div><b id="sExact"'+(mk.thin?' class="amb"':'')+'>'+mk.exactIndependent+'</b><span class="x">exact variant, independent</span></div><div><b>'+mk.adjacent+'</b><span class="x">related variant</span></div><div><b>'+mk.ownTicked+'</b><span class="x">Motorway stock ticked</span></div></div>'+
         thinHtml(mk)+c;
     }
     if(e.max===null){$('maxAcq').textContent='—';$('working').textContent='Enter an expected resale price to see the maximum acquisition price.'}
@@ -1844,6 +1862,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     }
     var bw=$('blankWarn');bw.hidden=!e.provisional;bw.textContent=e.provisional?'Some costs are blank and currently treated as $0: '+e.blanks.join(', ')+'. Enter 0 if that is intended.':'';
     $('maxBlk').classList.toggle('prov',e.provisional);
+    var ph=$('pulseHint'),bh=bufferHint();ph.hidden=!bh;ph.textContent=bh;
     $('resaleNote').textContent=(v.resale!==null&&ev.med!==null)?'Resale is '+(v.resale===ev.med?'equal to':money(Math.abs(v.resale-ev.med))+(v.resale>ev.med?' above':' below'))+' the median asking. Dealer input — the desk never sets it.':'Expected resale is your call. The desk does not set this figure for you.';
     if(v.offer===null){$('offerNote').textContent='Dealer enters this; the desk never suggests it.';$('gp').className='gp dim';$('gp').textContent='Enter to see projected gross profit.';$('gpNote').textContent=''}
     else if(e.max===null){$('offerNote').textContent='Enter an expected resale price to compare this offer with the maximum.';$('gp').className='gp dim';$('gp').textContent='—';$('gpNote').textContent=''}
@@ -1887,12 +1906,11 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(mk.evidence.n&&mk.thin)x.push('<b>Thin market / review</b> — '+esc(mk.reasons[0])+'.');
     set.filter(function(l){return l.own}).forEach(function(l){x.push('<b>Motorway stock ticked</b> — Listing '+l.id+' is counted in the asking figures by dealer choice. It is not independent evidence.')});
     S.listings.filter(function(l){return l.possibleSame}).forEach(function(l){x.push('<b>Possible same car</b> — Listing '+l.id+(l.dealer?' ('+esc(l.dealer)+')':'')+' has the same registration date, variant and COE left'+(set.indexOf(l)>=0?'; it is ticked':'; kept out of the figures')+'.')});
-    if(mk.adjacent)x.push('<b>Adjacent variants</b> — '+mk.adjacent+' of '+mk.evidence.n+' ticked comps are not the exact variant ('+esc(uniq(set.filter(function(l){return !l.own&&l.vclass!=='exact'&&l.price!==null}).map(function(l){return l.vlabel.replace(/^Adjacent variant — /,'')})).join('; '))+').');
+    if(mk.adjacent)x.push('<b>Related variants</b> — '+mk.adjacent+' of '+mk.evidence.n+' ticked comps are not the same spec ('+esc(uniq(set.filter(function(l){return !l.own&&l.vclass!=='exact'&&l.price!==null}).map(function(l){return l.vlabel.replace(/^Related variant — /,'').replace(/ · not the same spec$/,'')})).join('; '))+').');
     if(e.provisional)x.push('<b>Some costs are blank and currently treated as $0</b> — '+esc(e.blanks.join(', '))+'. The maximum below is provisional.');
     if(v.resale===null)x.push('<b>Expected resale not entered</b> — the maximum cannot be calculated. Dealer input on the Comparison desk.');
     var ns=set.filter(function(l){return l.price!==null&&(l.dep===null||l.km===null||l.owners===null||l.coeM===null)});
     if(ns.length)x.push('<b>Not stated</b> — '+ns.map(function(l){var m=[];if(l.dep===null)m.push('depreciation');if(l.km===null)m.push('mileage');if(l.owners===null)m.push('owners');if(l.coeM===null)m.push('COE');return 'Listing '+l.id+' '+m.join(', ')}).join('; ')+'.');
-    if(s.ownersDerived)x.push('<b>Owners (derived)</b> — this car’s owner count is transfers + 1 ('+s.transfers+' transfer'+pl(s.transfers,'','s')+'). Rule not yet confirmed by Motorway.');
     return x;
   }
   function uniq(a){return a.filter(function(v,i){return a.indexOf(v)===i})}
@@ -1905,7 +1923,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     h+='<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
-      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · QP '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
+      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · QP '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
     // 02 Exceptions first
     var ex=exceptionsList(mk,e,v);
     h+='<div class="step"><div class="no">02<br>CHECK</div><div><h2>Exceptions to review</h2>'+
@@ -1913,7 +1931,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         '<div class="noexc">No exceptions flagged. Evidence and inputs are complete.</div>')+'</div></div>';
     // 03 Market evidence
     h+='<div class="step"><div class="no">03<br>MARKET</div><div><h2>Market evidence</h2><div class="tldr">'+
-      '<div><div class="eyebrow">Exact independent comps</div><div class="f num'+(mk.thin?' amb':'')+'">'+mk.exactIndependent+' <span>of '+ev.n+' ticked'+(mk.adjacent?' · '+mk.adjacent+' adjacent':'')+'</span></div></div>'+
+      '<div><div class="eyebrow">Exact independent comps</div><div class="f num'+(mk.thin?' amb':'')+'">'+mk.exactIndependent+' <span>of '+ev.n+' ticked'+(mk.adjacent?' · '+mk.adjacent+' related':'')+'</span></div></div>'+
       '<div><div class="eyebrow">Median asking</div><div class="f num">'+money(ev.med)+'</div></div>'+
       '<div><div class="eyebrow">Median depreciation / yr</div><div class="f num">'+money(ev.depMed)+'</div></div></div>'+
       '<div class="num sub" style="margin-top:12px">'+(ev.n?'Asking range '+money(ev.low)+' – '+money(ev.high)+'. '+S.listings.length+' imported · '+mk.soldParsed+' sold · '+mk.ownParsed+' Motorway stock. Asking prices, not sale prices.':'No comparables with an asking price are ticked.')+'</div>'+
@@ -1940,7 +1958,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     var lg=function(k,val,op,last){return '<div class="ledger"'+(last?' style="border-bottom:0"':'')+'><span class="k">'+(op?'<span class="op">−</span>':'')+k+'</span><span class="num">'+(val===null?'<span class="amb">blank · counted as $0</span>':money(val))+'</span></div>'};
     h+='<div class="step"><div class="no">05<br>INPUTS</div><div><h2>Dealer inputs <span style="font-size:12px;font-weight:500;color:var(--unit);margin-left:8px">entered by the dealer · not from the market</span></h2>'+
       '<div class="ledger"><span class="k">Expected resale price</span><span class="num" style="font-weight:500">'+(v.resale===null?'<span class="amb">not entered</span>':money(v.resale))+'</span></div>'+
-      lg('Reconditioning / repairs',v.recon,1)+lg('Other costs',v.other,1)+lg('Target gross profit',v.profit,1)+
+      lg('Reconditioning / repairs',v.recon,1)+lg('Other costs',v.other,1)+lg('Target profit buffer',v.profit,1)+
+      (bufferHint()?'<div class="sub amb" style="padding:4px 0 6px">'+esc(bufferHint())+'</div>':'')+
       '<div class="ledger" style="border-bottom:0"><span class="k">Starting offer (dealer)</span><span class="num">'+(v.offer===null?'<span class="na">not entered</span>':money(v.offer))+'</span></div></div></div>';
     // 06 Max (deterministic output)
     h+='<div class="step" style="padding-top:0;border-top:0"><div class="no">06<br>MAX</div><div>'+
@@ -1976,11 +1995,11 @@ if(typeof module!=='undefined')module.exports=MPD;
     L.push((s.km!==null?kmF(s.km)+' km':'mileage n/s')+' · transfers '+(s.transfers!==null?s.transfers:'n/s')+(s.owners!==null?' (owners '+s.owners+', derived)':'')+' · COE '+(s.coeM!==null?ym(s.coeM)+' '+coeWord(s):'n/s'));
     L.push('');
     L.push('Market evidence: '+(ev.n?(mk.thin?'THIN MARKET / REVIEW':'OK'):'none ticked'));
-    L.push('Exact independent comps: '+mk.exactIndependent+' · adjacent: '+mk.adjacent+(mk.ownParsed?' · Motorway stock '+(mk.ownTicked?'INCLUDED by dealer ('+mk.ownTicked+')':'excluded ('+mk.ownParsed+')'):''));
+    L.push('Exact independent comps: '+mk.exactIndependent+' · related (not same spec): '+mk.adjacent+(mk.ownParsed?' · Motorway stock '+(mk.ownTicked?'INCLUDED by dealer ('+mk.ownTicked+')':'excluded ('+mk.ownParsed+')'):''));
     if(ev.n)L.push('Median asking '+money(ev.med)+' · range '+money(ev.low)+'–'+money(ev.high));
     if(mk.thin&&ev.n)mk.reasons.forEach(function(r){L.push('- '+r)});
     L.push('');
-    L.push('Dealer inputs: resale '+(v.resale===null?'not entered':money(v.resale))+' · recon '+(v.recon===null?'blank':money(v.recon))+' · other '+(v.other===null?'blank':money(v.other))+' · target GP '+(v.profit===null?'blank':money(v.profit)));
+    L.push('Dealer inputs: resale '+(v.resale===null?'not entered':money(v.resale))+' · recon '+(v.recon===null?'blank':money(v.recon))+' · other '+(v.other===null?'blank':money(v.other))+' · target profit buffer '+(v.profit===null?'blank':money(v.profit)));
     L.push('MAXIMUM ACQUISITION: '+(e.max===null?'—':money(e.max))+(e.provisional?' (PROVISIONAL — blank costs counted as $0)':''));
     if(fo!==null)L.push('Final offer (owner): '+money(fo));
     L.push('');

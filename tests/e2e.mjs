@@ -111,7 +111,8 @@ async function taycanSubject(p) {
   check('B: possible same car flagged', JSON.stringify(S.same) === '[5]');
   const pool = await text(p, '#poolBody');
   check('B: pool labels Motorway stock + possible same car', pool.includes('Motorway stock — excluded from independent evidence') && pool.includes('Possible same car'));
-  check('B: pool shows adjacent variant reasons', pool.includes('Adjacent variant — Performance Battery Plus'));
+  check('B: pool shows related-variant reasons', pool.includes('Related variant — Performance Battery Plus · not the same spec'));
+  check('B: pool shows SGCarMart Posted date as days ago (not time on market)', /Posted 28 Sep · (\d+ days ago|1 day ago|today)/.test(pool) && !/on market/i.test(pool));
   check('B: pool shows Why this comp?', pool.includes('Why this comp?'));
   check('B: thin market in pool footer', (await text(p, '#poolFoot')).includes('THIN MARKET / REVIEW'));
   await p.click('button[data-tab="all"]');
@@ -133,8 +134,11 @@ async function taycanSubject(p) {
   await next(p);
   const dec = await text(p, '#decBody');
   check('B: Decision leads with exceptions (thin, same car, blank costs)', dec.indexOf('Exceptions to review') < dec.indexOf('Market evidence') && dec.includes('Thin market / review') && dec.includes('Possible same car') && dec.includes('Some costs are blank and currently treated as $0'));
+  check('B: Decision exceptions no longer list the owners rule (dealer-confirmed)', !/Owners \(derived\)\s*—/.test(dec) && !/not yet confirmed/i.test(dec) && dec.includes('owners 3 (derived)'));
+  check('B: Decision names related variants, not adjacent', dec.includes('Related variants') && !/Adjacent/.test(dec));
+  check('B: Decision dealer inputs show Target profit buffer', dec.includes('Target profit buffer') && !dec.includes('Target gross profit'));
   const sum = await p.evaluate(() => window.__mpd.ownerSummary());
-  check('B: owner summary has state, exact/adjacent, own stock, max, disclaimer', ['THIN MARKET / REVIEW', 'Exact independent comps: 0', 'adjacent: 3', 'Motorway stock excluded', 'MAXIMUM ACQUISITION: $330,000 (PROVISIONAL', 'Asking prices are not sale prices.'].every(x => sum.includes(x)), sum.replace(/\n/g, ' | '));
+  check('B: owner summary has state, exact/related, own stock, max, disclaimer', ['THIN MARKET / REVIEW', 'Exact independent comps: 0', 'related (not same spec): 3', 'Motorway stock excluded', 'MAXIMUM ACQUISITION: $330,000 (PROVISIONAL', 'Asking prices are not sale prices.'].every(x => sum.includes(x)), sum.replace(/\n/g, ' | '));
   check('B: owner summary has no valuation language', !/valuation|market value|worth/i.test(sum));
   await p.screenshot({ path: out + 'v08-decision-taycan-1440.png', fullPage: true });
   check('B: no page errors', !p.errors.length, p.errors.join(' | '));
@@ -184,7 +188,16 @@ async function taycanSubject(p) {
   const pulse = await text(p, '#pulse');
   check('D: pulse shows price reduction', /Price reductions\s*1/.test(pulse));
   check('D: disappeared listing = No longer listed, not sold', /No longer listed\s*1/.test(pulse) && /Marked sold by SGCarMart\s*1/.test(pulse));
-  check('D: pulse has a market read and never claims demand', /Market read/i.test(pulse) && !/demand/i.test(pulse.replace('not sales or demand', '')));
+  check('D: pulse has a market read and never claims demand', /Market read/i.test(pulse) && !/demand/i.test(pulse.replace('not sales or demand', '').replace('not proof of low demand', '')));
+  check('D: pulse counts are "Active listings in this capture"', /Active listings in this capture\s*5 → 3/.test(pulse) && !/sitting in the market/i.test(pulse));
+  check('D: pulse caveat: price cuts = seller pressure, gone ≠ sold', pulse.includes('Price cuts show seller pressure, not proof of low demand.') && pulse.includes('Gone ≠ sold unless SGCarMart marks it sold.'));
+  // Softer read → buffer guidance in the rail; the maximum itself never moves because of the pulse.
+  await next(p);
+  await setVal(p, '#resale', '330000');
+  const maxWithPulse = await text(p, '#maxAcq');
+  check('D: softer asking evidence → "consider a larger profit buffer" shown by the buffer input', (await text(p, '#pulseHint')).includes('consider a larger profit buffer') && await p.isVisible('#pulseHint'));
+  check('D: pulse never changes the maximum (330,000 − 0 − 0 − 0)', maxWithPulse === '$330,000');
+  await p.click('#actBack');
   await p.screenshot({ path: out + 'v08-pulse-1440.png', fullPage: true });
   // Coverage mismatch: E200 page 1 of 180 against itself minus rows → loud warning, no removals
   await p.click('#pasteAgain');
