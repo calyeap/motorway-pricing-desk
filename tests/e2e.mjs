@@ -38,6 +38,7 @@ async function newPage(viewport = { width: 1440, height: 1000 }) {
   return page;
 }
 const text = (page, sel) => page.locator(sel).first().innerText();
+const document_has = (html, id) => html.includes('id="' + id + '"');
 const E200 = readFileSync(root + 'fixtures/sgcm-e200-avantgarde-ctrl-a.txt', 'utf8');
 const TAYCAN = readFileSync(root + 'fixtures/sgcm-taycan-4s-ctrl-a.txt', 'utf8');
 const paste = (page, t) => page.evaluate(t => { const dt = new DataTransfer(); dt.setData('text/plain', t); document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true })); }, t);
@@ -110,10 +111,11 @@ async function taycanSubject(p) {
   check('B: Motorway stock shown for context, unticked', S.short.includes(5) && !S.inc[5]);
   check('B: possible same car flagged', JSON.stringify(S.same) === '[5]');
   const pool = await text(p, '#poolBody');
-  check('B: pool labels Motorway stock + possible same car', pool.includes('Motorway stock — excluded from independent evidence') && pool.includes('Possible same car'));
-  check('B: pool shows related-variant reasons', pool.includes('Related variant — Performance Battery Plus · not the same spec'));
+  check('B: pool labels Motorway stock + possible same car', /Motorway stock · not independent evidence/i.test(pool) && /Possible same car/i.test(pool));
+  check('B: row shows the short related-variant flag; full reason lives in Details', /Related variant · not same spec/i.test(pool) && await p.evaluate(() => document.querySelector('#poolBody').textContent.includes('Related variant — Performance Battery Plus · not the same spec')));
   check('B: pool shows SGCarMart Posted date as days ago (not time on market)', /Posted 28 Sep · (\d+ days ago|1 day ago|today)/.test(pool) && !/on market/i.test(pool));
-  check('B: pool shows Why this comp?', pool.includes('Why this comp?'));
+  check('B: Why picked is behind Details (own subsection), not on the row', !pool.includes('Why picked') && !pool.includes('Why this comp') && await p.evaluate(() => [...document.querySelectorAll('#poolBody details.story')].some(d => d.textContent.includes('Why picked') && d.textContent.includes('registered'))));
+  check('B: Details keeps Why picked and Car story as separate subsections', await p.evaluate(() => [...document.querySelectorAll('#poolBody details.story')].some(d => d.textContent.includes('Why picked') && d.textContent.includes('Car story / seller notes'))));
   check('B: thin market in pool footer', (await text(p, '#poolFoot')).includes('THIN MARKET / REVIEW'));
   await p.click('button[data-tab="all"]');
   check('B: Cross Turismo set aside as different body style', (await text(p, '#poolBody')).includes('Different body style — Cross Turismo'));
@@ -125,10 +127,10 @@ async function taycanSubject(p) {
   await p.screenshot({ path: out + 'v08-pool-taycan-1440.png', fullPage: true });
   await next(p);
   const mk = await text(p, '#market');
-  check('B: rail says THIN MARKET / REVIEW with reasons', mk.includes('THIN MARKET / REVIEW') && mk.includes('0 exact-variant independent') && mk.includes('Motorway stock'));
+  check('B: rail says THIN MARKET / REVIEW; reasons behind Details', mk.includes('THIN MARKET / REVIEW') && !mk.includes('0 exact-variant independent') && await p.evaluate(() => { const t = document.querySelector('#market').textContent; return t.includes('0 exact-variant independent') && t.includes('Motorway stock'); }));
   check('B: Motorway stock excluded from median by default', (await text(p, '#sMed')) === '$378,800');
   await setVal(p, '#resale', '330000');
-  check('B: blank-cost warning obvious on rail', await p.isVisible('#blankWarn') && (await text(p, '#blankWarn')).includes('Some costs are blank and currently treated as $0'));
+  check('B: blank-cost state shown once, inside the max block', !document_has(await p.content(), 'blankWarn') && await p.isVisible('#maxBlk .provnote') && (await text(p, '#maxBlk .provnote')).includes('blank') && (await text(p, '#maxBlk')).includes('MAXIMUM ACQUISITION PRICE') && !(await text(p, '#maxBlk')).includes('DETERMINISTIC'));
   check('B: expected resale stays dealer input (never auto-set)', (await p.inputValue('#resale')) === '330,000');
   await p.screenshot({ path: out + 'v08-desk-taycan-1440.png', fullPage: true });
   await next(p);
@@ -189,6 +191,7 @@ async function taycanSubject(p) {
   check('D: pulse shows price reduction', /Price reductions\s*1/.test(pulse));
   check('D: disappeared listing = No longer listed, not sold', /No longer listed\s*1/.test(pulse) && /Marked sold by SGCarMart\s*1/.test(pulse));
   check('D: pulse has a market read and never claims demand', /Market read/i.test(pulse) && !/demand/i.test(pulse.replace('not sales or demand', '').replace('not proof of low demand', '')));
+  check('D: pulse leads with the market read, figures after', pulse.indexOf('MARKET READ') >= 0 && pulse.indexOf('MARKET READ') < pulse.indexOf('Price reductions') && /30 Sep 2026 → 30 Sep 2026/.test(pulse));
   check('D: pulse counts are "Active listings in this capture"', /Active listings in this capture\s*5 → 3/.test(pulse) && !/sitting in the market/i.test(pulse));
   check('D: pulse caveat: price cuts = seller pressure, gone ≠ sold', pulse.includes('Price cuts show seller pressure, not proof of low demand.') && pulse.includes('Gone ≠ sold unless SGCarMart marks it sold.'));
   // Softer read → buffer guidance in the rail; the maximum itself never moves because of the pulse.
@@ -234,7 +237,10 @@ async function taycanSubject(p) {
   check('E: phone paste step says capture is a desktop step', (await text(p, '#stPaste')).includes('Capture is a desktop step'));
   await paste(p, TAYCAN);
   await p.waitForSelector('#stPool:not([hidden])');
-  check('E: shortlist as readable cards with evidence', await p.isVisible('#poolCards .mc') && (await text(p, '#poolCards')).includes('DEP / YR') && (await text(p, '#poolCards')).includes('Motorway stock'));
+  const bandM = await text(p, '#band');
+  check('E: phone band shows owners, not transfers (35,000 km · 3 owners · 5y 6m)', /35,000\s*km/.test(bandM) && /3\s*owners/.test(bandM) && !/transfers/i.test(bandM) && /5y 6m/.test(bandM) && !/inferred/.test(bandM));
+  check('E: phone sticky labels are short', (await text(p, '#actBack')) === '← Back' && (await text(p, '#actNext')) === 'Comparison →');
+  check('E: shortlist as readable cards with evidence', await p.isVisible('#poolCards .mc') && (await text(p, '#poolCards')).includes('DEP / YR') && /Motorway stock/i.test(await text(p, '#poolCards')));
   const tog = await p.evaluate(() => { const b = document.querySelector('#poolCards .tapck').getBoundingClientRect(); return [b.width, b.height]; });
   check('E: card include toggle ≥ 44 px', tog[0] >= 44 && tog[1] >= 44, tog.join('×'));
   check('E: sticky Continue to Comparison on phone', await inViewport(p, '#actNext') && (await text(p, '#actNext')).includes('Comparison'));
@@ -243,7 +249,7 @@ async function taycanSubject(p) {
   const small = (page) => page.evaluate(() => {
     const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !e.closest('[hidden]') && getComputedStyle(e).visibility !== 'hidden'; };
     const ctl = [...document.querySelectorAll('button, a, input:not([type=checkbox]):not([type=file]), select, summary, label.pill, label.tapck')].filter(vis).map(e => ({ t: (e.innerText || e.id || e.tagName).trim().slice(0, 30), h: Math.round(e.getBoundingClientRect().height) })).filter(x => x.h < 44);
-    const txt = [...document.querySelectorAll('body *')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => ({ t: e.textContent.trim().slice(0, 30), fs: parseFloat(getComputedStyle(e).fontSize), eb: !!(e.closest('.eyebrow') || e.closest('summary')) })).filter(x => x.fs < (x.eb ? 11 : 12));
+    const txt = [...document.querySelectorAll('body *')].filter(e => vis(e) && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(e => ({ t: e.textContent.trim().slice(0, 30), fs: parseFloat(getComputedStyle(e).fontSize), eb: !!(e.closest('.eyebrow') || e.closest('summary') || e.closest('.lab')) })).filter(x => x.fs < (x.eb ? 11 : 12));
     return { ctl, txt };
   });
   let sm = await small(p);
@@ -264,6 +270,8 @@ async function taycanSubject(p) {
   await setVal(p, '#resale', '330000');
   await p.screenshot({ path: out + 'v08-desk-390.png', fullPage: true });
   await next(p);
+  check('E: phone Decision has a clear heading', await p.isVisible('#decBody .dechead') && (await text(p, '#decBody .dechead')) === 'Decision Summary');
+  check('E: phone evidence figures stack as rows', await p.evaluate(() => { const d = [...document.querySelectorAll('#decBody .tldr > div')]; return d.length === 3 && d.every(x => getComputedStyle(x).display === 'flex'); }));
   check('E: phone Decision: Copy owner summary is the sticky primary action', (await text(p, '#actNext')) === 'Copy owner summary' && await inViewport(p, '#actNext'));
   check('E: no horizontal scroll (decision)', await noHScroll(p));
   const order = await p.evaluate(() => ['Exceptions to review', 'Market evidence', 'Maximum acquisition price', 'Final offer'].map(t => document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) >= 0 ? document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) : document.querySelector('#decBody').innerText.indexOf(t)));
@@ -298,6 +306,7 @@ async function taycanSubject(p) {
   const figs = await p.evaluate(() => [...document.querySelectorAll('#pulse td.n')].map(td => { const r = td.getBoundingClientRect(); return r.right <= window.innerWidth && r.width > 0; }));
   check('E2: every pulse figure is on-screen', figs.length >= 9 && figs.every(Boolean), String(figs.length));
   check('E2: sticky Continue still fully visible with pulse open', await inViewport(p, '#actNext'));
+  check('E2: phone pulse: market read before the figures', pulse.indexOf('MARKET READ') < pulse.indexOf('Price reductions'));
   await p.evaluate(() => document.querySelector('#pulse').scrollIntoView());
   await p.screenshot({ path: out + 'v08-pulse-390.png', fullPage: false });
   // Comparable pulse (full coverage) on the same phone must also fit.

@@ -177,6 +177,6 @@ t.ok('buffer: label is "Target profit buffer" (dollar amount, not a margin %)', 
 t.ok('buffer: helper says the desk never changes the maximum', /Use a bigger buffer for a slower-moving car\. The desk never changes the maximum for you\./.test(APP));
 t.ok('buffer: softer → larger buffer, mixed → review holding risk (text only)', /softer asking evidence — consider a larger profit buffer/.test(APP) && /mixed evidence — review holding risk before setting your profit buffer/.test(APP));
 t.eq('buffer: economics() ignores market pulse (same inputs → same max, no pulse argument)', [M.economics({ resale: 330000, recon: null, other: null, profit: 5000, offer: null }).max, M.economics.length], [325000, 1]);
-t.ok('omv: caption says context only, never a valuation basis', /OMV context only · not used in pricing maths/.test(APP) && !/factory spec/i.test(APP));
+t.ok('omv: caption says context only, never a valuation basis', /\(context only · not used in pricing maths\)/.test(APP) && /ARF <b class="num">'\+\(s\.arf[^\n]*· context only<\/div>/.test(APP) && !/factory spec/i.test(APP));
 
 process.exit(t.done() ? 1 : 0);

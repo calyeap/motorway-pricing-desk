@@ -15,6 +15,7 @@
   --red:#BC151B; --red-hover:#A51618;
   --amber:#9A6412; --amber-dot:#C98A1F; --amber-tint:#FDFAF2; --amber-line:#D9C89E;
   --sage:#3F6B4C;
+  --pad:max(32px,calc((100vw - 1560px) / 2)); /* content stays ≤1560 wide; 32 px gutters up to 1624 px viewports */
   --mont:Montserrat,system-ui,-apple-system,"Segoe UI",sans-serif;
   --plex:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
@@ -55,7 +56,7 @@ button,input,select{font:inherit;color:inherit}
 .txt{font-size:13px;padding:7px 10px;border:1px solid var(--hairline);border-radius:2px;background:#fff;width:220px}
 
 /* App bar */
-.appbar{height:56px;background:var(--surface);border-bottom:1px solid var(--hairline);display:flex;align-items:center;padding:0 32px;gap:40px;position:sticky;top:0;z-index:5}
+.appbar{height:56px;background:var(--surface);border-bottom:1px solid var(--hairline);display:flex;align-items:center;padding:0 var(--pad);gap:40px;position:sticky;top:0;z-index:5}
 .brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .brand .word{font-family:var(--mont);font-size:15px;font-weight:700;letter-spacing:.06em;color:#201D1D}
 .brand .sep{width:1px;height:18px;background:var(--hairline);margin:0 4px}
@@ -71,9 +72,9 @@ button,input,select{font:inherit;color:inherit}
 .meta-r{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:12px;color:var(--muted)}
 
 /* Subject band */
-.band{background:var(--charcoal);color:#fff;padding:14px 32px;display:flex;align-items:flex-end;gap:48px;flex-wrap:wrap}
-.band.big{padding:22px 32px}
-.band .who{border-left:3px solid var(--red);padding-left:16px;min-width:0;flex:1 1 380px}
+.band{background:var(--charcoal);color:#fff;padding:14px var(--pad);display:flex;align-items:flex-end;gap:48px;flex-wrap:wrap}
+.band.big{padding:22px var(--pad)}
+.band .who{border-left:3px solid var(--red);padding-left:16px;min-width:0;flex:1 1 300px}
 .band .model{font-family:var(--mont);font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.15;margin-top:5px}
 .band.big .model{font-size:28px}
 .band .line{font-size:13px;color:var(--on-dark-muted);margin-top:4px}
@@ -147,14 +148,14 @@ button,input,select{font:inherit;color:inherit}
 .dot.amb{background:var(--amber-dot)}.dot.sage{background:var(--sage)}
 
 /* Summary strip + pool */
-.strip{background:#fff;border-bottom:1px solid var(--hairline);padding:14px 32px;display:flex;align-items:center;gap:10px 36px;flex-wrap:wrap}
+.strip{background:#fff;border-bottom:1px solid var(--hairline);padding:14px var(--pad);display:flex;align-items:center;gap:10px 36px;flex-wrap:wrap}
 .strip .big{font-size:20px;font-weight:600;margin-top:2px;white-space:nowrap}
 .strip .big span{font-size:13px;font-weight:400;color:var(--muted)}
 .strip .counts{display:flex;gap:28px;align-items:center;font-size:13.5px;flex-wrap:wrap}
 .strip .counts>span{display:flex;gap:8px;align-items:center;white-space:nowrap}
 .strip .counts b{font-weight:600}
 .strip .end{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.wrapP{padding:20px 32px 24px}
+.wrapP{padding:20px var(--pad) 24px}
 .panel{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;min-width:0}
 .tabs{display:flex;align-items:center;gap:12px;padding:8px 16px 0;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
 .tabs .tl{display:flex;gap:22px;flex-wrap:wrap}
@@ -194,6 +195,8 @@ table.led{border-collapse:collapse;width:100%}
 .led .meta{display:block;font-size:12px;color:var(--unit);margin-top:3px;white-space:normal}
 .led .note{display:block;font-size:12px;margin-top:5px;color:var(--unit);white-space:normal;max-width:360px;line-height:1.35}
 .led .note.amb{color:var(--amber)}
+.note .lab{font-weight:500}
+.note.amb .lab{font-family:var(--mont);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .led .cands{display:flex;flex-direction:column;gap:5px;align-items:flex-start;margin-top:6px}
 .led tr.ref td{background:var(--sunk);border-bottom:1px solid var(--hairline)}
 .led tr.ref td:first-child{box-shadow:inset 3px 0 0 var(--red)}
@@ -210,7 +213,7 @@ table.led{border-collapse:collapse;width:100%}
 .ign .p{color:var(--delta);font-size:12px;margin-top:3px;white-space:normal}
 
 /* Desk */
-.desk{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:24px;padding:24px 32px}
+.desk{display:grid;grid-template-columns:minmax(0,1fr) 352px;gap:24px;padding:24px var(--pad)}
 .deskhd{display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
 .deskhd .fl{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .deskft{padding:12px 16px;display:flex;gap:20px;align-items:center;font-size:12px;color:var(--muted);margin-top:auto;border-top:1px solid var(--rule);flex-wrap:wrap}
@@ -218,7 +221,7 @@ table.led{border-collapse:collapse;width:100%}
 .explain{padding:0 16px 12px;font-size:12px;color:var(--ink2)}
 .explain ul{margin:6px 0 0;padding-left:18px;max-width:80ch}
 .rail{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;align-self:start}
-.rs{padding:14px 18px 12px;border-bottom:1px solid var(--hairline)}
+.rs{padding:16px 18px 14px;border-bottom:1px solid var(--hairline)}
 .rs.first{padding-top:16px}
 .kv{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--rule);font-size:13.5px;gap:12px}
 .kv .k{color:var(--muted)}
@@ -255,9 +258,9 @@ table.led{border-collapse:collapse;width:100%}
 .ledger .k{color:var(--ink2)}
 .ledger .op{color:var(--na);margin-right:10px}
 .ledger>.num{white-space:nowrap;text-align:right}
-.dmax{background:var(--charcoal);color:#fff;padding:20px 24px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.dmax{background:var(--charcoal);color:#fff;padding:20px 24px 18px}
 .dmax .big{font-family:var(--mont);font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:6px}
-.dmax .w{font-size:12px;color:var(--on-dark-muted);text-align:right;line-height:1.5}
+.dmax .w{font-size:12px;color:var(--on-dark-muted);margin-top:10px;line-height:1.5}
 .adv{border:1px dashed var(--dash);padding:18px 22px 16px;background:var(--fill-dash)}
 .adv .tag{color:var(--amber);border:1px solid var(--amber-line);padding:2px 8px;border-radius:2px}
 .decide{border-top:3px solid var(--red);background:#fff;border-left:1px solid var(--hairline);border-right:1px solid var(--hairline);border-bottom:1px solid var(--hairline);padding:20px 24px 22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
@@ -273,7 +276,9 @@ table.led{border-collapse:collapse;width:100%}
 
 /* V0.8 — sticky step actions, exceptions, thin market, blank-cost warning, car story, Market Pulse (locked tokens only) */
 body{padding-bottom:76px}
-.actbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--hairline);display:flex;align-items:center;gap:16px;padding:10px 32px;min-height:64px}
+.actbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--hairline);display:flex;align-items:center;gap:16px;padding:6px var(--pad);min-height:52px}
+.actbar .sm,.band .sm{display:none}
+.actbar .btn{padding:8px 16px}
 .btn.ghostb{background:var(--surface);color:var(--ink);border-color:var(--hairline)}
 .btn.ghostb:hover{border-color:var(--ink)}
 .actmid{flex:1;min-width:0;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:14px;justify-content:flex-end}
@@ -282,7 +287,10 @@ body{padding-bottom:76px}
 .maxchip b{font-family:var(--mont);font-size:18px;font-weight:700}
 .maxchip.prov{box-shadow:inset 0 -3px 0 var(--amber-dot)}
 .state-line{font-size:12px;white-space:nowrap}
-.thin{border-left:3px solid var(--amber-dot);background:var(--amber-tint);padding:10px 12px;margin-top:10px}
+.thin{border-left:3px solid var(--amber-dot);background:var(--amber-tint);padding:8px 12px;margin-top:10px}
+.thin summary{display:flex;gap:10px;align-items:baseline;cursor:pointer;list-style:none}
+.thin summary::-webkit-details-marker{display:none}
+.thin summary .sub{text-decoration:underline;text-underline-offset:2px}
 .thin .eyebrow{color:var(--amber)}
 .thin ul{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--ink2);line-height:1.4}
 .okstate{margin-top:10px;font-size:12px;color:var(--sage)}
@@ -299,6 +307,9 @@ details.story{margin-top:6px;font-size:12px;color:var(--unit);white-space:normal
 details.story summary{cursor:pointer;font-family:var(--mont);font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:2px 0}
 details.story .q{margin:4px 0 0;padding-left:8px;border-left:2px solid var(--rule)}
 details.story .q b{font-weight:600;color:var(--ink2)}
+details.story .q>div{margin-top:3px}
+.vsep{display:inline-block;width:1px;height:14px;background:var(--hairline);vertical-align:middle}
+.dechead{font-family:var(--mont);font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:16px}
 .pulse{background:var(--surface);border:1px solid var(--hairline);padding:14px 18px;margin-bottom:16px}
 .pulse .pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:8px}
 .pulse table{border-collapse:collapse;font-size:13.5px}
@@ -318,6 +329,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
 .tapck .ck{pointer-events:none}
 
 /* Responsive — 390px board A7 */
+@media (max-width:1400px){.band .figs{gap:28px}.band .sec{padding-left:22px}.band.big .model{font-size:26px}}
 @media (max-width:1100px){.desk{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:720px){
   .actbar{padding:8px 12px;gap:8px;min-height:64px}
@@ -419,6 +431,21 @@ details.story .q b{font-weight:600;color:var(--ink2)}
   .led th.sec{font-size:12px}
   .maxchip .eyebrow{font-size:11px}
   .bigin input{min-height:52px}
+  /* Convergence pass: purpose-built phone layout. Short labels, owners-first band, read-first pulse, stacked evidence. */
+  .actbar .lg,.band .lg{display:none}
+  .actbar .sm,.band .sm{display:inline}
+  .band .figs{gap:14px}
+  .band .fig:nth-child(3) .u{display:none}
+  .band.open .sec .sm{display:block}
+  .tldr{display:block}
+  .tldr>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-left:0;border-bottom:1px solid var(--rule);padding:8px 0}
+  .tldr .f{font-size:20px;margin-top:0;white-space:nowrap}
+  .tldr .f span{display:inline;font-size:12px}
+  .summ{max-height:none}
+  .fld{grid-template-columns:minmax(0,1fr) 14px 50%}
+  .note.amb .lab{font-size:11px}
+  .strip .end .vsep{display:none}
+  .thin summary{min-height:44px;align-items:center}
 }
 @media (max-width:720px) and (prefers-reduced-motion:no-preference){.fadein{animation:none}}
 </style>
@@ -442,7 +469,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
 
   <!-- 1a · This car: LTA PDF + mileage -->
   <div class="page" id="stSubject">
-    <div class="eyebrow">Step 1 of 3 · This car</div>
+    <div class="eyebrow">Import · This car</div>
     <h1 class="h1">Start with the car being traded in</h1>
     <p class="lede">Upload the customer's LTA Vehicle Registration Details PDF and enter the current mileage they gave you.</p>
     <p class="sub" style="margin-top:8px;max-width:62ch">The PDF is processed locally in the browser. Only allowlisted vehicle fields are retained/displayed. Personal fields are discarded and not stored.</p>
@@ -472,7 +499,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
 
   <!-- 1b · SGCarMart paste (A1) -->
   <div class="page" id="stPaste" hidden>
-    <div class="eyebrow">Step 1 of 3 · Comparables</div>
+    <div class="eyebrow">Import · Market listings</div>
     <h1 class="h1">Import SGCarMart results</h1>
     <p class="lede">Copy the whole results page. The desk finds the vehicle listings, ignores the rest of the page and lays them out in the ledger for you to review.</p>
     <p class="msg amb mobile-only">Capture is a desktop step: on the SGCarMart results page press Ctrl + A, then Ctrl + C, then paste here. The phone is for reviewing and deciding.</p>
@@ -499,7 +526,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
 
   <!-- 1c · Processing (A2) -->
   <div class="page" id="stProc" hidden>
-    <div class="eyebrow">Step 1 of 3 · Comparables</div>
+    <div class="eyebrow">Import · Market listings</div>
     <h1 class="h1">Reading SGCarMart results…</h1>
     <p class="lede num" id="procLede"></p>
     <div class="card" style="padding:28px 32px">
@@ -587,8 +614,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
         <div class="sub num" id="resaleNote" style="margin-top:6px"></div>
         <div style="margin-top:6px"><button class="link" type="button" id="clear">Clear inputs</button></div>
       </div>
-      <div class="blankwarn" id="blankWarn" role="status" hidden></div>
-      <div class="maxblk" id="maxBlk" aria-live="polite"><div class="eyebrow onDark">Maximum acquisition price · deterministic output</div><div class="big num" id="maxAcq">—</div><div class="w num" id="working"></div></div>
+      <div class="maxblk" id="maxBlk" aria-live="polite"><div class="eyebrow onDark">Maximum acquisition price</div><div class="big num" id="maxAcq">—</div><div class="w num" id="working"></div></div>
       <div class="rs">
         <div class="eyebrow" style="margin-bottom:6px">Dealer input</div>
         <div class="fld" style="border-bottom:0;padding:0"><label for="offer" style="font-weight:600">Starting offer</label><span class="op"></span><input class="num" id="offer" type="text" inputmode="numeric" autocomplete="off" style="border-color:var(--ink)"></div>
@@ -1222,32 +1248,25 @@ if(typeof module!=='undefined')module.exports=MPD;
     var bar=$('actbar'),back=$('actBack'),next=$('actNext'),mid=$('actMid');
     var hide=S.view==='import'&&(S.stage==='proc'||(S.stage==='subject'&&!S.lta));
     bar.hidden=hide;if(hide)return;
+    var lbl=function(lg,sm){return '<span class="lg">'+lg+'</span><span class="sm">'+sm+'</span>'};
     back.hidden=false;next.disabled=false;mid.innerHTML='';
     if(S.view==='import'&&S.stage==='subject'){
-      back.hidden=true;next.textContent='Continue to market listings →';
+      back.hidden=true;next.innerHTML=lbl('Continue to market listings →','Continue →');
       var why=subjectGaps();next.disabled=why.length>0;
       mid.innerHTML=why.length?'<span class="hint">Needed: '+esc(why.join(', '))+'</span>':'';
     }else if(S.view==='import'&&S.stage==='paste'){
-      back.textContent='← This car';
-      next.textContent=S.listings.length?'Review shortlist →':'Paste results to continue';next.disabled=!S.listings.length;
+      back.innerHTML=lbl('← This car','← Back');
+      next.innerHTML=S.listings.length?lbl('Review shortlist →','Shortlist →'):'Paste results to continue';next.disabled=!S.listings.length;
     }else if(S.view==='import'&&S.stage==='pool'){
-      back.textContent='← Market listings';
-      var n=deskList().length;
-      next.textContent='Continue to Comparison →';next.disabled=!n;
-      var mk=M.market(counted(),S.listings);
-      mid.innerHTML='<span class="hint">'+n+' comparable'+pl(n,'','s')+' will open</span>'+stateLine(mk);
+      back.innerHTML=lbl('← Paste','← Back');
+      next.innerHTML=lbl('Continue to Comparison →','Comparison →');next.disabled=!deskList().length;
     }else if(S.view==='desk'){
-      back.textContent='← Shortlist';next.textContent='Decision Summary →';
+      back.innerHTML=lbl('← Shortlist','← Back');next.innerHTML=lbl('Decision Summary →','Decision →');
       var e=M.economics(inputs());
-      mid.innerHTML=stateLine(M.market(counted(),S.listings))+'<span class="maxchip'+(e.provisional?' prov':'')+'"><span class="eyebrow onDark">Max acquisition</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b></span>';
+      mid.innerHTML='<span class="maxchip'+(e.provisional?' prov':'')+'"><span class="eyebrow onDark">Max acquisition</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b></span>';
     }else if(S.view==='decision'){
-      back.textContent='← Comparison';next.textContent='Copy owner summary';
+      back.innerHTML=lbl('← Comparison','← Back');next.textContent='Copy owner summary';
     }
-    back.textContent=back.hidden?back.textContent:back.textContent;
-  }
-  function stateLine(mk){
-    if(!mk.evidence.n)return '';
-    return '<span class="state-line '+(mk.thin?'amb':'sage')+'">'+(mk.thin?'THIN MARKET / REVIEW':'Market evidence OK')+' · '+mk.exactIndependent+' exact independent</span>';
   }
   $('actBack').addEventListener('click',function(){
     if(S.view==='decision')return go('desk');
@@ -1282,11 +1301,11 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="model">'+esc(s.name)+'</div><div class="line">'+line.join(' · ')+'</div></div>'+
       '<div class="figs">'+
         fig('Mileage',s.km===null?'<span class="na">not entered</span>':kmF(s.km)+' <span class="u">km</span>')+
-        fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':s.transfers+(s.owners!==null?' <span class="u"><span class="mo">transfers · </span>owners '+s.owners+' (derived)</span>':''))+
+        fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':'<span class="lg">'+s.transfers+(s.owners!==null?' <span class="u">owners '+s.owners+' (derived)</span>':'')+'</span>'+(s.owners!==null?'<span class="sm">'+s.owners+' <span class="u">owners</span></span>':'<span class="sm">'+s.transfers+' <span class="u">transfers</span></span>'))+
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
         '<div class="sec"><div>Registered <b class="num">'+(s.reg?M.fmtISO(s.reg):'<span class="na">n/s</span>')+'</b></div>'+
-        '<div>OMV <b class="num">'+(s.omv!==null?money(s.omv):'<span class="na">n/s</span>')+'</b> · ARF <b class="num">'+(s.arf!==null?money(s.arf):'<span class="na">n/s</span>')+'</b></div>'+
-        '<div>OMV context only · not used in pricing maths</div>'+
+        '<div>OMV <b class="num">'+(s.omv!==null?money(s.omv):'<span class="na">n/s</span>')+'</b> · ARF <b class="num">'+(s.arf!==null?money(s.arf):'<span class="na">n/s</span>')+'</b> · context only</div>'+
+        (s.transfers!==null&&s.owners!==null?'<div class="sm">'+s.transfers+' transfer'+pl(s.transfers,'','s')+' → '+s.owners+' owners (derived)'+(s.coeM!==null?' · COE '+coeWord(s):'')+'</div>':'')+
         (s.qp!==null?'<div>QP <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):'')+'</div>':'')+
         (s.roadTaxExpiry?'<div>Road tax to <b class="num">'+M.fmtISO(s.roadTaxExpiry)+'</b></div>':'')+'</div>'+
         '<button class="link details" type="button" aria-expanded="false">Details ▾</button>'+
@@ -1550,12 +1569,11 @@ if(typeof module!=='undefined')module.exports=MPD;
       (D.nowSold.length?'<details><summary>Marked sold by SGCarMart ('+D.nowSold.length+')</summary>'+li(D.nowSold,function(x){return '<li>'+nm(x.cur)+'</li>'})+'</details>':'')+
       (D.needsReview.length?'<details><summary>Match needs review ('+D.needsReview.length+')</summary>'+li(D.needsReview,function(x){var l=x.cur||x.prev;return '<li>'+nm(l)+' · '+esc(x.why)+'</li>'})+'</details>':'');
     el.hidden=false;
-    el.innerHTML='<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><h2 class="h2">Market Pulse · since last snapshot</h2><span class="sub">'+esc(D.prev.capturedFor)+' → '+esc(D.cur.capturedFor||'today')+' · captured asking evidence only, not sales or demand</span>'+(compact?'':'<button class="link" type="button" id="pulseClose" style="margin-left:auto">Close</button>')+'</div>'+
+    el.innerHTML='<div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap"><h2 class="h2">Market Pulse · since last snapshot</h2><span class="sub">'+esc(M.fmtISO(D.prev.capturedFor)||D.prev.capturedFor)+' → '+esc(D.cur.capturedFor?M.fmtISO(D.cur.capturedFor):'today')+' · captured asking evidence only, not sales or demand</span>'+(compact?'':'<button class="link" type="button" id="pulseClose" style="margin-left:auto">Close</button>')+'</div>'+
       D.warnings.map(function(w){return '<div class="warn">'+esc(w)+'</div>'}).join('')+
-      '<div class="pgrid"><table>'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="n num">'+r[1]+'</td></tr>'}).join('')+'</table>'+
-      '<div><div class="eyebrow">Market read</div><div class="read">'+esc(R.read)+'</div><div class="sub" style="margin-top:6px">Why:</div><ul>'+R.why.map(function(w){return '<li>'+esc(w)+'</li>'}).join('')+'</ul>'+
-      '<div class="sub" style="margin-top:6px">Price cuts show seller pressure, not proof of low demand. Gone ≠ sold unless SGCarMart marks it sold.</div>'+
-      (D.ownExcluded?'<div class="sub" style="margin-top:6px">Motorway stock is excluded from the pulse medians.</div>':'')+'</div></div>'+(compact?'':detail);
+      '<div class="pgrid"><div><div class="eyebrow">Market read</div><div class="read">'+esc(R.read)+'</div><ul>'+R.why.map(function(w){return '<li>'+esc(w)+'</li>'}).join('')+'</ul>'+
+      '<div class="sub" style="margin-top:8px">Price cuts show seller pressure, not proof of low demand. Gone ≠ sold unless SGCarMart marks it sold.'+(D.ownExcluded?' Motorway stock is excluded from the pulse medians.':'')+'</div></div>'+
+      '<table>'+rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="n num">'+r[1]+'</td></tr>'}).join('')+'</table></div>'+(compact?'':detail);
     var c=$('pulseClose');if(c)c.onclick=function(){S.prevSnap=null;S.diff=null;renderPool()};
   }
 
@@ -1610,7 +1628,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         (c.sold?'<span><span class="dot"></span><b class="num">'+c.sold+'</b> sold · kept out of the shortlist</span>':'')+
         '<span><span class="dot"></span><b class="num">'+S.ignored.length+'</b> page blocks ignored</span>'+
       '</div>'+
-      '<div class="end">'+(S.demo?'':'<button class="link" type="button" id="saveSnap">Save snapshot'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with a saved snapshot</label><button class="link" type="button" id="addPage">Add another page</button>')+'<button class="link" type="button" id="pasteAgain">Paste again</button></div>';
+      '<div class="end"><button class="link" type="button" id="pasteAgain">Paste again</button>'+(S.demo?'':'<button class="link" type="button" id="addPage">Add another page</button><span class="vsep"></span><button class="link" type="button" id="saveSnap">Save snapshot'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with a saved snapshot</label>')+'</div>';
     $('pasteAgain').onclick=function(){$('pasteBox').value='';setStage('paste')};
     if($('addPage'))$('addPage').onclick=function(){S.appendNext=true;$('addPage').textContent='Now press Ctrl + V to add the next page'};
     if($('saveSnap'))$('saveSnap').onclick=downloadSnapshot;
@@ -1721,48 +1739,61 @@ if(typeof module!=='undefined')module.exports=MPD;
     return '<span class="d num'+(amb?' amb':'')+'">'+(dd===0?'at median':(dd>0?'+$':'−$')+Math.abs(Math.round(dd)).toLocaleString('en-US')+' vs median')+'</span>';
   }
   // Notes: [text, class]. Amber = look here. Normal source facts stay quiet.
+  // Each note: [label, short detail, class, explanation]. Label + short detail stay on the row (one line);
+  // the explanation goes into the row's Details disclosure. Same facts as V0.8, less text in the way of the numbers.
   function notesList(l,depMed,ctx){
     var n=[],t=ctx==='pool'?tierOf(l):null,inShort=ctx==='desk'||t==='short';
-    if(l.own)n.push(['Motorway stock — excluded from independent evidence','amb']);
-    if(l.possibleSame)n.push(['Possible same car — same registration date, variant and COE left as this car','amb']);
-    if(l.sold)n.push(['Sold · SGCarMart listing status (“sold · View Similar”) · no asking price','']);
-    if(l.status==='needs_input')n.push(['Needs input · title lines disagree: “'+l.conflict.candidates[0].source+'” vs “'+l.conflict.candidates[1].source+'” — pick one','amb']);
-    if(l.vclass==='adjacent'&&!l.sold)n.push([l.vlabel,'amb']);
-    if(l.vclass==='different'&&!l.sold&&t!=='aside')n.push([l.vlabel,'amb']);
+    var add=function(lab,short,cls,why){n.push([lab,short||'',cls||'',why||''])};
+    if(l.own)add('Motorway stock','not independent evidence','amb','Own stock is shown for context and never counted as independent evidence unless the dealer ticks it.');
+    if(l.possibleSame)add('Possible same car','','amb','Same registration date, variant and COE left as this car.');
+    if(l.sold)add('Sold','no asking price','','SGCarMart listing status (“sold · View Similar”). Never counted in the figures.');
+    if(l.status==='needs_input')add('Needs input','pick the variant','amb','Title lines disagree: “'+l.conflict.candidates[0].source+'” vs “'+l.conflict.candidates[1].source+'” — pick one. Nothing is guessed.');
+    if(l.vclass==='adjacent'&&!l.sold)add('Related variant','not same spec','amb',l.vlabel+'. Included, but never counted as an exact comp.');
+    if(l.vclass==='different'&&!l.sold&&t!=='aside')add('Different body style',l.vlabel.replace(/^Different body style — /,''),'amb',l.vlabel+'. Set aside from the shortlist.');
     var cr=M.coeReason(l),old=l.reg&&M.ageYears(l.reg,S.asAt)>=9;
-    var hi=depMed!==null&&l.dep!==null&&l.dep>=depMed*1.10,lo=depMed!==null&&l.dep!==null&&l.dep<=depMed*0.90;
+    var dd=depMed!==null&&l.dep!==null?l.dep-depMed:null;
+    var hi=dd!==null&&l.dep>=depMed*1.10,lo=dd!==null&&l.dep<=depMed*0.90;
     if(!l.sold&&l.status!=='needs_input'&&cr&&!S.inc[l.id]&&inShort){
-      n.push(['Unticked by default · '+cr+(old?' · registered 9+ yrs ago':'')+(hi?' · higher depreciation':lo?' · lower depreciation':''),'amb']);
+      add('Unticked by default',cr+(old?' · 9+ yrs':''),'amb','Unticked by default · '+cr+(old?' · registered 9+ yrs ago':'')+(hi?' · higher depreciation':lo?' · lower depreciation':'')+'. Not like-for-like with this car; tick it to count it.');
     }else{
-      if(hi)n.push(['Review · higher depreciation than selected comps','amb']);
-      if(lo)n.push(['Review · lower depreciation than selected comps','amb']);
-      if(old&&!l.sold)n.push(['Registered 9+ yrs ago',cr?'amb':'']);
-      if(cr&&!l.sold&&t!=='aside')n.push([cr.charAt(0).toUpperCase()+cr.slice(1)+(l.renewedSource&&l.renewedSource!=='sample'?' · '+l.renewedSource:''),'amb']);
+      if(hi)add('High depreciation','+'+kAbbr(dd,true)+' vs median','amb','Yearly depreciation is 10% or more above the median of the ticked comps. A cue to look at why; it does not say the asking price is wrong.');
+      if(lo)add('Low depreciation',kAbbr(dd,true)+' vs median','amb','Yearly depreciation is 10% or more below the median of the ticked comps. A cue to look at why; it does not say the asking price is wrong.');
+      if(old&&!l.sold)add('Registered 9+ yrs ago','',cr?'amb':'','Near or past the 10-year point.');
+      if(cr&&!l.sold&&t!=='aside')add(cr.charAt(0).toUpperCase()+cr.slice(1),l.renewedSource&&l.renewedSource!=='sample'?l.renewedSource:'','amb',l.renewed?'Asking price and depreciation are not like-for-like with an original-COE car.':'Under 2 years of COE left.');
     }
-    if(l.f&&l.f.km&&l.f.km.status==='unusual')n.push(['Mileage '+l.f.km.note.replace(/^mileage /,'')+' — review · accepted as read','amb']);
+    if(l.f&&l.f.km&&l.f.km.status==='unusual')add('Mileage '+(/low/.test(l.f.km.note)?'low':'high')+' for age','accepted as read','amb',l.f.km.note.charAt(0).toUpperCase()+l.f.km.note.slice(1)+' — review. The value is kept exactly as read.');
     var st=M.carStory(l);
-    if(st.importOrigReg&&st.importOrigReg!==l.reg)n.push(['Import used · seller text says original registration '+M.fmtISO(st.importOrigReg)+' (listing shows '+M.fmtISO(l.reg)+')','amb']);
-    if(ctx==='pool'&&t==='aside'&&S.pool.reason[l.id]&&!l.sold)n.push([S.pool.reason[l.id],'']);
-    if(ctx==='pool'&&t==='short'&&S.pool.reason[l.id]&&!cr&&!l.own)n.push([S.pool.reason[l.id],'']);
+    if(st.importOrigReg&&st.importOrigReg!==l.reg)add('Import used','original reg '+M.fmtISO(st.importOrigReg),'amb','Seller text says original registration '+M.fmtISO(st.importOrigReg)+'; the listing shows '+M.fmtISO(l.reg)+'.');
+    if(ctx==='pool'&&t==='aside'&&S.pool.reason[l.id]&&!l.sold)add(S.pool.reason[l.id],'','','');
+    if(ctx==='pool'&&t==='short'&&S.pool.reason[l.id]&&!cr&&!l.own)add(S.pool.reason[l.id],'','','');
     var miss=[],fs=S.fieldsInSource||[];
     [['price','asking'],['dep','depreciation'],['km','mileage'],['owners','owners'],['coeM','COE left'],['omv','OMV'],['arf','ARF'],['cond','condition']].forEach(function(p){
       if(fs.indexOf(p[0])<0)return;if(l.sold&&(p[0]==='price'))return;
       if(l[p[0]]===null)miss.push(p[1]);
     });
-    if(miss.length)n.push(['Not stated · '+miss.join(', ')+' — nothing filled in',l.sold?'':'ns']); // sold rows: gaps are expected, not an exception
-    if(l.picked)n.push(['Variant picked by dealer: “'+l.picked+'”','']);
-    // Why this comp? plain facts, no score — only for suggested / desk rows.
-    if(inShort&&!l.sold&&S.subject){var w=M.whyComp(l,S.subject).filter(function(x){return !/^(Motorway stock|Possible same car|Related variant|Different body)/.test(x)});if(w.length)n.push(['Why this comp? '+w.join(' · '),'why'])}
+    if(miss.length)add('Not stated',miss.join(', '),l.sold?'':'ns','Nothing is filled in for a missing field.'); // sold rows: gaps are expected, not an exception
+    if(l.picked)add('Variant picked by dealer','“'+l.picked+'”','','');
     return n;
   }
-  function isException(l,depMed,ctx){return notesList(l,depMed,ctx).some(function(x){return x[1]==='amb'||x[1]==='ns'})}
-  function rowNotes(l,depMed,ctx){return notesList(l,depMed,ctx).map(function(x){return '<span class="note '+(x[1]==='amb'?'amb':'')+'">'+esc(x[0])+'</span>'}).join('')+storyHtml(l)}
-  function storyHtml(l){
-    var st=M.carStory(l);if(!st.mentions.length&&!st.facts.length)return '';
-    return '<details class="story"><summary>Car story · notable details</summary>'+
-      (st.facts.length?'<div class="q"><b>Listing tag:</b> '+esc(st.facts.join(', '))+'</div>':'')+
-      st.mentions.map(function(m){return '<div class="q"><b>'+esc(m.tag)+'</b> — “'+esc(m.quote)+'”</div>'}).join('')+
-      '<div class="sub" style="margin-top:4px">Seller’s text, unverified. No effect on the maths.</div></details>';
+  function isException(l,depMed,ctx){return notesList(l,depMed,ctx).some(function(x){return x[2]==='amb'||x[2]==='ns'})}
+  function noteHtml(x){return '<span class="note'+(x[2]==='amb'?' amb':'')+'"><b class="lab">'+esc(x[0])+'</b>'+(x[1]?' · '+esc(x[1]):'')+'</span>'}
+  function rowNotes(l,depMed,ctx){return notesList(l,depMed,ctx).map(noteHtml).join('')+detailsHtml(l,depMed,ctx)}
+  // One DETAILS disclosure per listing. Distinct subsections, distinct provenance:
+  // Why picked (desk rules) · Why flagged (review thresholds) · Seller (listing) · Car story / seller notes (seller's text, unverified).
+  function detailsHtml(l,depMed,ctx){
+    var t=ctx==='pool'?tierOf(l):null,inShort=ctx==='desk'||t==='short';
+    var why=(inShort&&!l.sold&&S.subject)?M.whyComp(l,S.subject).filter(function(x){return !/^(Motorway stock|Possible same car|Related variant|Different body)/.test(x)}):[];
+    var flagged=notesList(l,depMed,ctx).filter(function(x){return x[3]});
+    var st=M.carStory(l),story=st.mentions.length||st.facts.length;
+    if(!why.length&&!flagged.length&&!story&&!l.dealer)return '';
+    return '<details class="story"><summary>Details</summary>'+
+      (why.length?'<div class="q"><b>Why picked</b> — '+esc(why.join(' · '))+'</div>':'')+
+      (flagged.length?'<div class="q"><b>Why flagged</b>'+flagged.map(function(x){return '<div><b class="lab">'+esc(x[0])+'</b> — '+esc(x[3])+'</div>'}).join('')+'</div>':'')+
+      (l.dealer?'<div class="q"><b>Seller</b> — '+esc(l.dealer)+'</div>':'')+
+      (story?'<div class="q"><b>Car story / seller notes</b>'+(st.facts.length?'<div>Listing tag: '+esc(st.facts.join(', '))+'</div>':'')+
+        st.mentions.map(function(m){return '<div><b class="lab">'+esc(m.tag)+'</b> — “'+esc(m.quote)+'”</div>'}).join('')+
+        '<div class="sub" style="margin-top:4px">Seller’s text, unverified. No effect on the maths.</div></div>':'')+
+      '</details>';
   }
   function stateCell(l,ctx){
     var on=!!S.inc[l.id],t=ctx==='pool'?tierOf(l):null;
@@ -1777,7 +1808,7 @@ if(typeof module!=='undefined')module.exports=MPD;
   function row(l,depMed,ctx){
     var s=S.subject,on=!!S.inc[l.id],t=ctx==='pool'?tierOf(l):null,needs=l.status==='needs_input';
     var off=!on&&(ctx==='desk'||t==='short'||t==='aside');
-    var meta='Listing '+l.id+(S.pages>1?' · page '+l.page:'')+(l.sold?' · sold':'')+(l.cond?' · '+esc(l.cond):S.fieldsInSource&&S.fieldsInSource.indexOf('cond')>=0?' · <span class="na">condition not stated</span>':'')+(ctx==='desk'?' · '+(l.dealer?esc(l.dealer):'<span class="na">dealer not stated</span>'):'')+(postedStr(l)?' · '+postedStr(l):'');
+    var meta='Listing '+l.id+(S.pages>1?' · page '+l.page:'')+(l.sold?' · sold':'')+(l.cond?' · '+esc(l.cond):S.fieldsInSource&&S.fieldsInSource.indexOf('cond')>=0?' · <span class="na">condition not stated</span>':'')+(postedStr(l)?' · '+postedStr(l):'');
     var kmD=(l.km!==null&&s.km!==null)?'<span class="d num'+(Math.abs(l.km-s.km)>=20000?' amb':'')+'">'+delta(l.km-s.km,'','same')+'</span>':'';
     var owD=(l.owners!==null&&s.owners!==null)?'<span class="d num'+(l.owners!==s.owners?' amb':'')+'">'+delta(l.owners-s.owners,'','same')+'</span>':'';
     var coeD='';
@@ -1801,15 +1832,15 @@ if(typeof module!=='undefined')module.exports=MPD;
     var dd=l.dep!==null&&depMed!==null?l.dep-depMed:null;
     var tog=ctx==='desk'?'<label class="tapck"><input type="checkbox" data-id="'+l.id+'"'+(on?' checked':'')+' aria-label="Include listing '+l.id+'" style="width:22px;height:22px;accent-color:var(--sage)"></label>':
       l.status==='needs_input'?'<span class="tapck"><span class="ck rev"></span></span>':'<button type="button" class="tapck" data-tog="'+l.id+'" aria-pressed="'+on+'" aria-label="'+(on?'Included — untick':'Not included — tick')+' listing '+l.id+'"><span class="ck'+(on?' on':' no')+'"></span></button>';
-    var notes=notesList(l,depMed,ctx).map(function(x){return '<span class="note sub'+(x[1]==='amb'?' amb':'')+'">'+esc(x[0])+'</span>'}).join('');
-    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(l.dealer?' · '+esc(l.dealer):'')+(postedStr(l)?' · '+postedStr(l):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
+    var notes=notesList(l,depMed,ctx).map(noteHtml).join('');
+    return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(postedStr(l)?' · '+postedStr(l):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
       notes+
       '<div class="g">'+
       cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':dd===0?'at median':(dd>0?'+':'')+kAbbr(dd,true),dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
       cell('Mileage',l.km===null?'n/s':kAbbr(l.km),l.km!==null&&s.km!==null?(l.km-s.km>0?'+':'')+kAbbr(l.km-s.km):'',l.km!==null&&s.km!==null&&Math.abs(l.km-s.km)>=20000)+
       cell('Owners',l.owners===null?'n/s':l.owners,l.owners!==null&&s.owners!==null?delta(l.owners-s.owners,'','same'):'',l.owners!==null&&s.owners!==null&&l.owners!==s.owners)+
       cell('COE',l.coeM===null?'n/s':ym(l.coeM),l.coeM!==null&&s.coeM!==null?delta(l.coeM-s.coeM,' mo','same'):'',l.renewed||(l.coeM!==null&&l.coeM<24))+
-      '</div>'+storyHtml(l)+'</div>';
+      '</div>'+detailsHtml(l,depMed,ctx)+'</div>';
   }
 
   // ---------- 2 · Comparison desk (V0.6 logic) ----------
@@ -1860,7 +1891,7 @@ if(typeof module!=='undefined')module.exports=MPD;
   function thinHtml(mk){
     if(!mk.evidence.n)return '';
     if(!mk.thin)return '<div class="okstate">'+mk.exactIndependent+' exact-variant independent active comps ticked.'+(mk.reasons.length?' '+esc(mk.reasons.join(' · ')):'')+'</div>';
-    return '<div class="thin" role="note"><div class="eyebrow">Thin market / review</div><ul>'+mk.reasons.map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul></div>';
+    return '<div class="thin" role="note"><details><summary><span class="eyebrow">Thin market / review</span><span class="sub">Details</span></summary><ul>'+mk.reasons.map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul></details></div>';
   }
   function renderMoney(){
     var set=counted(),mk=M.market(set,S.listings),ev=mk.evidence,v=inputs(),m=$('market'),e=M.economics(v);
@@ -1885,14 +1916,13 @@ if(typeof module!=='undefined')module.exports=MPD;
         (e.max<=0?' · Costs and target profit use up the whole resale price, so there is no room to buy.':'')+
         (e.provisional?'<div class="provnote">Provisional — '+esc(e.blanks.join(', '))+' blank, counted as $0</div>':'');
     }
-    var bw=$('blankWarn');bw.hidden=!e.provisional;bw.textContent=e.provisional?'Some costs are blank and currently treated as $0: '+e.blanks.join(', ')+'. Enter 0 if that is intended.':'';
     $('maxBlk').classList.toggle('prov',e.provisional);
     var ph=$('pulseHint'),bh=bufferHint();ph.hidden=!bh;ph.textContent=bh;
-    $('resaleNote').textContent=(v.resale!==null&&ev.med!==null)?'Resale is '+(v.resale===ev.med?'equal to':money(Math.abs(v.resale-ev.med))+(v.resale>ev.med?' above':' below'))+' the median asking. Dealer input — the desk never sets it.':'Expected resale is your call. The desk does not set this figure for you.';
-    if(v.offer===null){$('offerNote').textContent='Dealer enters this; the desk never suggests it.';$('gp').className='gp dim';$('gp').textContent='Enter to see projected gross profit.';$('gpNote').textContent=''}
+    $('resaleNote').textContent=(v.resale!==null&&ev.med!==null)?'Resale is '+(v.resale===ev.med?'equal to':money(Math.abs(v.resale-ev.med))+(v.resale>ev.med?' above':' below'))+' the median asking.':'';
+    if(v.offer===null){$('offerNote').textContent='';$('gp').className='gp dim';$('gp').textContent='Enter to see projected gross profit.';$('gpNote').textContent=''}
     else if(e.max===null){$('offerNote').textContent='Enter an expected resale price to compare this offer with the maximum.';$('gp').className='gp dim';$('gp').textContent='—';$('gpNote').textContent=''}
     else{
-      $('offerNote').textContent=(v.offer===e.max?'Equal to the maximum.':money(Math.abs(e.max-v.offer))+(v.offer<e.max?' below':' above')+' the maximum.')+' Dealer enters this; the desk never suggests it.';
+      $('offerNote').textContent=(v.offer===e.max?'Equal to the maximum.':money(Math.abs(e.max-v.offer))+(v.offer<e.max?' below':' above')+' the maximum.');
       $('gp').className='gp num';$('gp').textContent=money(e.gp);
       $('gpNote').textContent=plain(v.resale)+' − '+plain(e.r0)+' − '+plain(e.o0)+' − '+plain(v.offer)+(v.profit!==null?' · '+(e.gp===v.profit?'equal to target':money(Math.abs(e.gp-v.profit))+(e.gp>v.profit?' above':' below')+' target'):'');
     }
@@ -1945,7 +1975,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     var h='';
     // 01 Car
     var facts=[['Registered',s.reg?M.fmtISO(s.reg):null],['Mileage',s.km!==null?kmF(s.km)+' km':null],['Transfers',s.transfers,s.owners!==null?' · owners '+s.owners+' (derived)':''],['COE',s.coeM!==null?ym(s.coeM):null,s.coeM!==null?' '+coeWord(s):''],['Propellant',s.propellant]];
-    h+='<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
+    h+='<div class="dechead mobile-only">Decision Summary</div>'+
+      '<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
       '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · QP '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
@@ -1960,7 +1991,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div><div class="eyebrow">Median asking</div><div class="f num">'+money(ev.med)+'</div></div>'+
       '<div><div class="eyebrow">Median depreciation / yr</div><div class="f num">'+money(ev.depMed)+'</div></div></div>'+
       '<div class="num sub" style="margin-top:12px">'+(ev.n?'Asking range '+money(ev.low)+' – '+money(ev.high)+'. '+S.listings.length+' imported · '+mk.soldParsed+' sold · '+mk.ownParsed+' Motorway stock. Asking prices, not sale prices.':'No comparables with an asking price are ticked.')+'</div>'+
-      (mk.evidence.n&&mk.thin?'<div class="thin"><div class="eyebrow">Thin market / review</div><ul>'+mk.reasons.slice(1).map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul></div>':'')+
+      (mk.evidence.n&&mk.thin?'<div class="amb num" style="margin-top:8px;font-size:13px;font-weight:600">Thin market · '+mk.exactIndependent+' exact · '+mk.adjacent+' related</div>':'')+
       '<div id="decPulse" class="pulse" style="margin-top:14px" hidden></div></div></div>';
     // 04 Key differences (quiet facts)
     var obs=[];
@@ -1988,13 +2019,12 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="ledger" style="border-bottom:0"><span class="k">Starting offer (dealer)</span><span class="num">'+(v.offer===null?'<span class="na">not entered</span>':money(v.offer))+'</span></div></div></div>';
     // 06 Max (deterministic output)
     h+='<div class="step" style="padding-top:0;border-top:0"><div class="no">06<br>MAX</div><div>'+
-      (e.provisional?'<div class="blankwarn">Some costs are blank and currently treated as $0: '+esc(e.blanks.join(', '))+'.</div>':'')+
-      '<div class="dmax" aria-live="polite"><div><div class="eyebrow onDark">Maximum acquisition price · deterministic output</div><div class="big num">'+(e.max===null?'—':money(e.max))+'</div>'+(e.provisional?'<div class="provnote">Provisional — blank costs counted as $0</div>':'')+'</div>'+
-      '<div class="w num">'+(e.max===null?'Enter an expected resale price on the Comparison desk.':plain(v.resale)+' − '+plain(e.r0)+' − '+plain(e.o0)+' − '+plain(e.p0))+'<br>Dealer math. Moves only when the inputs move.</div></div></div></div>';
+      '<div class="dmax" aria-live="polite"><div class="eyebrow onDark">Maximum acquisition price</div><div class="big num">'+(e.max===null?'—':money(e.max))+'</div>'+(e.provisional?'<div class="provnote">Provisional — '+esc(e.blanks.join(', '))+' blank, counted as $0</div>':'')+
+      '<div class="w num">'+(e.max===null?'Enter an expected resale price on the Comparison desk.':plain(v.resale)+' − '+plain(e.r0)+' − '+plain(e.o0)+' − '+plain(e.p0)+' · Dealer math. Moves only when the inputs move.')+'</div></div></div></div>';
     // 07 Decide (owner input — separate from the dealer's starting offer)
     h+='<div class="step" style="border-top:0;padding-top:8px"><div class="no">07<br>DECIDE</div><div class="decide">'+
-      '<div><h2 style="margin-bottom:4px">Final offer</h2><label for="final" class="sub">Owner input · separate from the dealer’s starting offer'+(v.offer!==null?' ('+money(v.offer)+')':'')+'</label><div class="bigin"><span>$</span><input class="num" id="final" type="text" inputmode="numeric" autocomplete="off" value="'+esc(S.finalOffer)+'"></div>'+
-      '<div class="sub num" style="margin-top:8px" id="finalNote">'+(fo===null?'Enter the figure the owner decides.':e.max===null?'':money(Math.abs(e.max-fo))+(fo<=e.max?' below':' above')+' the maximum')+'</div></div>'+
+      '<div><h2 style="margin-bottom:4px">Final offer</h2><label for="final" class="sub">Owner enters the figure'+(v.offer!==null?' · dealer’s starting offer '+money(v.offer):'')+'</label><div class="bigin"><span>$</span><input class="num" id="final" type="text" inputmode="numeric" autocomplete="off" value="'+esc(S.finalOffer)+'"></div>'+
+      '<div class="sub num" style="margin-top:8px" id="finalNote">'+(fo===null||e.max===null?'':money(Math.abs(e.max-fo))+(fo<=e.max?' below':' above')+' the maximum')+'</div></div>'+
       '<div style="padding-top:2px"><h2 style="margin-bottom:4px">Projected gross profit at the final offer</h2><div class="dgp num'+(fgp===null?' dim':'')+'" id="finalGp" aria-live="polite">'+(fgp===null?'Enter a final offer and an expected resale to see this.':money(fgp))+'</div>'+
       (fgp!==null?'<div class="sub num" style="margin-top:8px">'+plain(v.resale)+' − '+plain(e.r0)+' − '+plain(e.o0)+' − '+plain(fo)+(v.profit!==null?' · '+(fgp===v.profit?'equal to target':money(Math.abs(fgp-v.profit))+(fgp>v.profit?' above':' below')+' target'):'')+'</div>':'')+
       '<div style="font-size:14px;font-weight:600;margin-top:14px">Owner makes the final decision.</div></div></div></div>';
@@ -2018,6 +2048,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var L=[];
     L.push(s.name+(s.reg?' · reg '+M.fmtISO(s.reg):''));
     L.push((s.km!==null?kmF(s.km)+' km':'mileage n/s')+' · transfers '+(s.transfers!==null?s.transfers:'n/s')+(s.owners!==null?' (owners '+s.owners+', derived)':'')+' · COE '+(s.coeM!==null?ym(s.coeM)+' '+coeWord(s):'n/s'));
+    L.push('MAXIMUM ACQUISITION: '+(e.max===null?'—':money(e.max))+(e.provisional?' (PROVISIONAL — blank costs counted as $0)':''));
     L.push('');
     L.push('Market evidence: '+(ev.n?(mk.thin?'THIN MARKET / REVIEW':'OK'):'none ticked'));
     L.push('Exact independent comps: '+mk.exactIndependent+' · related (not same spec): '+mk.adjacent+(mk.ownParsed?' · Motorway stock '+(mk.ownTicked?'INCLUDED by dealer ('+mk.ownTicked+')':'excluded ('+mk.ownParsed+')'):''));
@@ -2025,7 +2056,6 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(mk.thin&&ev.n)mk.reasons.forEach(function(r){L.push('- '+r)});
     L.push('');
     L.push('Dealer inputs: resale '+(v.resale===null?'not entered':money(v.resale))+' · recon '+(v.recon===null?'blank':money(v.recon))+' · other '+(v.other===null?'blank':money(v.other))+' · target profit buffer '+(v.profit===null?'blank':money(v.profit)));
-    L.push('MAXIMUM ACQUISITION: '+(e.max===null?'—':money(e.max))+(e.provisional?' (PROVISIONAL — blank costs counted as $0)':''));
     if(fo!==null)L.push('Final offer (owner): '+money(fo));
     L.push('');
     L.push('Asking prices are not sale prices.');
@@ -2034,7 +2064,8 @@ if(typeof module!=='undefined')module.exports=MPD;
   function copyOwnerSummary(){
     if(S.view!=='decision')return;
     var t=ownerSummary(),msg=$('copyMsg');
-    var ok=function(){if(msg)msg.textContent='Copied. Paste it into WhatsApp or email.'},bad=function(){if(msg)msg.textContent='Copy blocked by the browser. Select the text below and copy it.';var r=document.createRange();r.selectNodeContents($('sumText'));var sel=getSelection();sel.removeAllRanges();sel.addRange(r)};
+    var flash=function(){[$('copySum'),$('actNext')].forEach(function(b){if(!b)return;var t=b.textContent;b.textContent='Copied ✓';setTimeout(function(){b.textContent=t},2000)})};
+    var ok=function(){flash();if(msg)msg.textContent='Copied. Paste it into WhatsApp or email.'},bad=function(){if(msg)msg.textContent='Copy blocked by the browser. Select the text below and copy it.';var r=document.createRange();r.selectNodeContents($('sumText'));var sel=getSelection();sel.removeAllRanges();sel.addRange(r)};
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(ok,bad);else bad();
     $('sumText').scrollIntoView({block:'nearest'});
   }
