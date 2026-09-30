@@ -20,7 +20,7 @@ Single-file HTML pricing desk for used-car acquisition (dealer decision support)
 
 1. Calvin's explicit instructions in the current session.
 2. V0.6 logic (`baseline/v0.6`) for all calculations, filters, sort, default ticks, notes, disclaimers. Design lock says logic survives unchanged.
-3. `design/final-lock/HANDOFF.md` for tokens, layout, copy, states, parser contract.
+3. `design/final-lock/HANDOFF.md` for tokens, layout, copy, states, parser contract. Exception: the corner-radius system (4 / 6 / 8 px) and typography weights/tracking approved by Calvin on 30 Sep 2026 (commits `d64e4f7`, `783b7a2`) supersede HANDOFF.md §2; the HANDOFF file itself stays frozen. Visual design frozen at `783b7a2`.
 4. `design/final-lock/html/A1–A8` boards for visual detail HANDOFF.md does not specify.
 5. The fixture for what SGCarMart actually emits. Where the boards' sample data disagrees with the fixture, the fixture wins on parsing; the boards win on presentation.
 
