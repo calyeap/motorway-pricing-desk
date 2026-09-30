@@ -140,7 +140,7 @@ async function taycanSubject(p) {
   check('B: Decision names related variants, not adjacent', dec.includes('Related variants') && !/Adjacent/.test(dec));
   check('B: Decision deal numbers show Target gross profit', dec.includes('Target gross profit') && !dec.includes('Target profit buffer'));
   const sum = await p.evaluate(() => window.__mpd.ownerSummary());
-  check('B: owner summary has state, exact/related, own stock, max, disclaimer', ['THIN MARKET / REVIEW', 'Exact independent comps: 0', 'related (not same spec): 3', 'Motorway stock excluded', 'MAXIMUM PURCHASE: $330,000 (PROVISIONAL', 'Asking prices are not sale prices.'].every(x => sum.includes(x)), sum.replace(/\n/g, ' | '));
+  check('B: appraisal summary: car, evidence, deal numbers, exceptions, disclaimer', ['Porsche Taycan 4S 4+1', '35,000 km · 3 owners · COE 5y 6m', 'Market evidence', '3 comps selected (0 exact · 3 related)', 'Median asking: $378,800', 'Deal numbers', 'Expected sale: $330,000', 'Maximum purchase: $330,000 (provisional)', 'Exceptions / notes:', 'Thin market / review', 'Possible same car', 'Asking prices are not sale prices.'].every(x => sum.includes(x)) && !/Recon \/ repairs|Final offer|Projected gross profit|transfers/.test(sum), sum.replace(/\n/g, ' | '));
   check('B: owner summary has no valuation language', !/valuation|market value|worth/i.test(sum));
   await p.screenshot({ path: out + 'v08-decision-taycan-1440.png', fullPage: true });
   check('B: no page errors', !p.errors.length, p.errors.join(' | '));
@@ -279,7 +279,7 @@ async function taycanSubject(p) {
   await next(p);
   check('E: phone Decision has a clear heading', await p.isVisible('#decBody .dechead') && (await text(p, '#decBody .dechead')) === 'Decision Summary');
   check('E: phone evidence figures stack as rows', await p.evaluate(() => { const d = [...document.querySelectorAll('#decBody .tldr > div')]; return d.length === 3 && d.every(x => getComputedStyle(x).display === 'flex'); }));
-  check('E: phone Decision: Copy owner summary is the sticky primary action', (await text(p, '#actNext')) === 'Copy owner summary' && await inViewport(p, '#actNext'));
+  check('E: phone Decision: Copy appraisal summary is the sticky primary action', (await text(p, '#actNext')) === 'Copy appraisal summary' && await inViewport(p, '#actNext'));
   check('E: no horizontal scroll (decision)', await noHScroll(p));
   const order = await p.evaluate(() => ['Exceptions to review', 'Market evidence', 'Maximum purchase price', 'Final offer'].map(t => document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) >= 0 ? document.querySelector('#decBody').innerText.indexOf(t.toUpperCase()) : document.querySelector('#decBody').innerText.indexOf(t)));
   check('E: phone order car → exceptions → evidence → max → final offer', order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), order.join(','));
@@ -402,6 +402,80 @@ async function taycanSubject(p) {
   await p.waitForFunction(() => /Taycan|TAYCAN/.test(document.getElementById('out').textContent), null, { timeout: 15000 });
   check('I: diagnostic reads the synthetic fixture (11 fields, values typed ok)', /parseLta: 11 of 15/.test(await text(p, '#out')) && /"PORSCHE" ✓ make/.test(await text(p, '#out')));
   check('I: no page errors', !p.errors.length, p.errors.join(' | '));
+  await p.context().close();
+}
+
+// ---------------------------------------------------------------- J. QOL pass: readout chip, summary, CSV, print, shortlist actions, new appraisal, drag-drop
+{
+  const pdfB64 = readFileSync(root + 'fixtures/lta-taycan-4s-synthetic.pdf').toString('base64');
+  const dropFile = (page, name, type, b64) => page.evaluate(([name, type, b64]) => {
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const dt = new DataTransfer(); dt.items.add(new File([bytes], name, { type }));
+    document.getElementById('ltaDrop').dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+  }, [name, type, b64]);
+  for (const vp of [{ width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+    const tag = vp.width < 500 ? 'phone' : 'laptop';
+    const p = await newPage(vp);
+    await p.goto(base + 'motorway-pricing-desk.html');
+    // 3. drag-drop: a text file is refused with a message; the PDF goes through the same local parser path
+    await dropFile(p, 'notes.txt', 'text/plain', Buffer.from('hello').toString('base64'));
+    check(`J ${tag}: dropping a non-PDF shows a clear message`, /not a PDF/i.test(await text(p, '#ltaMsg')));
+    await dropFile(p, 'lta.pdf', 'application/pdf', pdfB64);
+    await p.waitForSelector('#subjReview:not([hidden])', { timeout: 15000 });
+    check(`J ${tag}: dropped PDF parsed locally (Taycan 4S)`, (await text(p, '#subjRows')).includes('Taycan 4S 4+1'));
+    await setVal(p, '#subjKm', '35000'); await next(p); await paste(p, TAYCAN); await p.waitForSelector('#stPool:not([hidden])'); await next(p);
+    await setVal(p, '#resale', '330000');
+    const maxBefore = await text(p, '#maxAcq');
+    // 1. static readout
+    const chip = await p.evaluate(() => { const c = document.querySelector('#actMid .maxchip'); const cs = getComputedStyle(c); return { tag: c.tagName, bg: cs.backgroundColor, cursor: cs.cursor, role: c.getAttribute('role'), text: c.innerText.replace(/\s+/g, ' ') }; });
+    check(`J ${tag}: Maximum purchase in the footer is a static readout (no fill, no pointer, not a button)`, chip.tag === 'SPAN' && /rgba\(0, 0, 0, 0\)|transparent/.test(chip.bg) && chip.cursor === 'default' && /MAX PURCHASE \$330,000 provisional/.test(chip.text), JSON.stringify(chip));
+    // 7. clear / restore selections — maximum is unaffected
+    const ticked = () => p.evaluate(() => Object.keys(window.__mpd.state.inc).filter(k => window.__mpd.state.inc[k]).map(Number).sort());
+    await p.click('#clearSel');
+    check(`J ${tag}: Clear selections unticks every comp`, (await ticked()).length === 0 && (await text(p, '#maxAcq')) === maxBefore);
+    await p.click('#restoreSel');
+    check(`J ${tag}: Restore suggested shortlist returns the default ticks (1, 2, 4), never Motorway stock or sold`, JSON.stringify(await ticked()) === '[1,2,4]' && (await text(p, '#maxAcq')) === maxBefore);
+    // 8. Enter moves between money inputs, never submits or resets
+    await p.focus('#resale'); await p.keyboard.press('Enter');
+    check(`J ${tag}: Enter in a money input moves focus to the next input`, await p.evaluate(() => document.activeElement.id === 'recon') && (await p.inputValue('#resale')) === '330,000');
+    await next(p);
+    // 4/5. summary + CSV
+    const sum = await p.evaluate(() => window.__mpd.ownerSummary());
+    check(`J ${tag}: summary shows only figures that exist`, sum.includes('Expected sale: $330,000') && !sum.includes('Recon') && !sum.includes('Final offer'));
+    const dl = p.waitForEvent('download'); await p.click('#exportCsv'); const f = await dl;
+    const csvPath = out + `appraisal-${tag}.csv`; await f.saveAs(csvPath);
+    const csv = readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
+    const lines = csv.split('\r\n').filter(Boolean);
+    const cells = (l) => { const o = []; let cur = '', q = false; for (let i = 0; i < l.length; i++) { const ch = l[i]; if (q) { if (ch === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; } else if (ch === '"') q = true; else if (ch === ',') { o.push(cur); cur = ''; } else cur += ch; } o.push(cur); return o; };
+    const H = cells(lines[0]), R = cells(lines[1]), col = (n) => R[H.indexOf(n)];
+    check(`J ${tag}: CSV is one header + one row, 25 columns, filename carries date + car`, lines.length === 2 && H.length === 25 && R.length === 25 && /^appraisal-\d{4}-\d{2}-\d{2}-porsche-taycan-4s-4-1\.csv$/.test(f.suggestedFilename()), `${lines.length} ${H.length} ${R.length} ${f.suggestedFilename()}`);
+    check(`J ${tag}: CSV row carries the desk's figures unformatted`, col('Make') === 'Porsche' && col('Model') === 'Taycan 4S 4+1' && col('Registration date') === '2022-04-29' && col('Mileage (km)') === '35000' && col('Owners (derived)') === '3' && col('COE left') === '5y 6m' && col('OMV') === '136610' && col('Selected comps') === '3' && col('Median asking') === '378800' && col('Expected sale price') === '330000' && col('Maximum purchase price') === '330000' && col('Final offer') === '' && col('Reconditioning / repairs') === '', R.join('|'));
+    check(`J ${tag}: CSV exceptions cell is quoted text with the thin-market note`, /Thin market/.test(col('Exceptions / notes')) && /"/.test(lines[1]));
+    check(`J ${tag}: CSV has no seller names, no LTA labels, no raw text`, !/Motor-Way|Credit Pte|Auto Cars|Vehicle Model|Vehicle No|Chassis|Owner Name|Owner's|Registered Owner|NRIC|Address|source:/i.test(csv));
+    // 6. print: chrome hidden, sheet kept
+    await p.emulateMedia({ media: 'print' });
+    const pr = await p.evaluate(() => ({ bar: getComputedStyle(document.querySelector('.appbar')).display, act: getComputedStyle(document.querySelector('#actbar')).display, head: getComputedStyle(document.querySelector('.printhead')).display, max: getComputedStyle(document.querySelector('#decBody .dmax')).display, share: getComputedStyle(document.querySelector('#decBody .step:last-child')).display }));
+    check(`J ${tag}: print hides nav / sticky bar / share section, shows the sheet header and the maximum`, pr.bar === 'none' && pr.act === 'none' && pr.share === 'none' && pr.head === 'block' && pr.max !== 'none', JSON.stringify(pr));
+    await p.emulateMedia({ media: 'screen' });
+    check(`J ${tag}: Print / Save PDF and New appraisal reachable from Decision`, await p.isVisible('#printBtn') && await p.isVisible('#newAppr2') && await p.isVisible('#exportCsv'));
+    // 2. new appraisal: confirm, then a clean start; Cancel keeps everything
+    await p.click('#newAppr2'); await p.waitForSelector('#newDlg[open]');
+    check(`J ${tag}: destructive reset asks first, with Cancel focused (Enter = safe)`, (await text(p, '#newDlg')).includes('Start a new appraisal? Current unsaved appraisal data will be cleared.') && await p.evaluate(() => document.activeElement.id === 'newCancel'));
+    await p.click('#newCancel');
+    check(`J ${tag}: Cancel keeps the appraisal`, await p.evaluate(() => window.__mpd.state.listings.length === 9) && (await p.inputValue('#resale')) === '330,000');
+    await p.click('#newAppr2'); await p.waitForSelector('#newDlg[open]');
+    await Promise.all([p.waitForNavigation(), p.click('#newGo')]);
+    await p.waitForSelector('#stSubject:not([hidden])');
+    check(`J ${tag}: Start new appraisal returns to the import start with nothing kept`, await p.evaluate(() => window.__mpd.state.listings.length === 0 && !window.__mpd.state.lta) && (await p.inputValue('#subjKm')) === '');
+    check(`J ${tag}: no page errors`, !p.errors.length, p.errors.join(' | '));
+    await p.context().close();
+  }
+  // Desktop-only: New appraisal in the app bar; with nothing entered it restarts without a dialog.
+  const p = await newPage();
+  await p.goto(base + 'motorway-pricing-desk.html');
+  check('J: app bar New appraisal visible on desktop', await p.isVisible('#newAppr'));
+  await Promise.all([p.waitForNavigation(), p.click('#newAppr')]);
+  check('J: with no work entered, New appraisal simply restarts', await p.isVisible('#stSubject'));
   await p.context().close();
 }
 

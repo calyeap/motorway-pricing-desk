@@ -297,10 +297,11 @@ body{padding-bottom:76px}
 .btn.ghostb{background:var(--surface);color:var(--ink);border-color:var(--hairline)}
 .btn.ghostb:hover{border-color:var(--ink)}
 .actmid{flex:1;min-width:0;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:14px;justify-content:flex-end}
-.maxchip{background:var(--charcoal);color:#fff;padding:6px 12px;border-radius:var(--r-ctl);display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+/* Calculated output, not a control: no fill, no hover, no pointer. */
+.maxchip{display:flex;align-items:baseline;gap:10px;white-space:nowrap;padding:0 14px 0 12px;border-left:2px solid var(--hairline);cursor:default;user-select:none}
 .maxchip .eyebrow{font-size:10px}
-.maxchip b{font-family:var(--mont);font-size:18px;font-weight:700}
-.maxchip.prov{box-shadow:inset 0 -3px 0 var(--amber-dot)}
+.maxchip b{font-family:var(--mont);font-size:20px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.maxchip .prov{font-size:11px;color:var(--amber)}
 .state-line{font-size:12px;white-space:nowrap}
 .thin{border-left:3px solid var(--amber-dot);background:var(--amber-tint);padding:8px 12px;margin-top:10px;border-radius:var(--r-ctl)}
 .thin summary{display:flex;gap:10px;align-items:baseline;cursor:pointer;list-style:none}
@@ -338,7 +339,12 @@ details.story .q>div{margin-top:3px}
 .exc{border:1px solid var(--amber-line);background:var(--amber-tint);padding:14px 18px;border-radius:var(--r-panel)}
 .exc .obs{font-size:14.5px}
 .noexc{color:var(--sage);font-size:15px}
-.actions-inline{margin-top:10px;display:flex;gap:12px;align-items:center}
+.actions-inline{margin-top:10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.dlg{border:1px solid var(--hairline);border-radius:var(--r-panel);padding:20px 22px;max-width:400px;font-size:14px;line-height:1.5;color:var(--ink)}
+.dlg::backdrop{background:rgba(27,27,27,.35)}
+.dlg p{margin:0}
+.dlg .row{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.printhead{display:none}
 .summ{white-space:pre-wrap;font-family:var(--plex);font-size:13px;background:var(--sunk);border:1px solid var(--rule);border-radius:var(--r-panel);padding:12px 14px;margin-top:10px;max-height:260px;overflow:auto}
 .tapck{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-12px -12px -8px 0;background:none;border:0;padding:0;cursor:pointer}
 .tapck .ck{pointer-events:none}
@@ -352,8 +358,9 @@ details.story .q>div{margin-top:3px}
   .actbar #actNext{flex:1;min-height:48px;white-space:normal}
   .actmid{flex:0 0 auto}
   .actmid .hint,.actmid .state-line{display:none}
-  .maxchip{flex-direction:column;gap:0;padding:4px 10px}
-  .maxchip b{font-size:16px}
+  .maxchip{flex-direction:column;gap:0;padding:0 10px}
+  .maxchip b{font-size:18px}
+  .maxchip .prov{font-size:10px}
   .mobile-only{display:block}
   label.pill.mobile-only{display:inline-flex}
   .pill.tog{height:44px}
@@ -363,7 +370,7 @@ details.story .q>div{margin-top:3px}
   .pulse .pgrid{grid-template-columns:1fr;gap:10px}
   .split{grid-template-columns:repeat(3,minmax(0,1fr))}
   .mc .note{display:block;margin-top:4px}
-  .dec .actions-inline{display:none}
+  .dec #copySum{display:none}
   .appbar{padding:0 16px;gap:12px}
   .brand .sep,.brand .prod,.meta-r{display:none}
   .nav{gap:14px;margin-left:auto}
@@ -463,6 +470,17 @@ details.story .q>div{margin-top:3px}
   .thin summary{min-height:44px;align-items:center}
 }
 @media (max-width:720px) and (prefers-reduced-motion:no-preference){.fadein{animation:none}}
+/* Print: the Decision Summary as a clean appraisal sheet. */
+@media print{
+  body{background:#fff}
+  .appbar,.actbar,.band,.actions-inline,.more,.dechead,#pulseClose,.dec .step:last-child{display:none!important}
+  .printhead{display:block;font-size:11px;color:var(--muted);border-bottom:1px solid var(--hairline);padding-bottom:8px;margin-bottom:8px}
+  .dec{max-width:none;padding:0}
+  .step{break-inside:avoid;padding:14px 0}
+  .obs.x{display:flex!important}
+  .dmax,.maxblk{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .exc,.decide,.dmax,.pulse{break-inside:avoid}
+}
 </style>
 </head>
 <body>
@@ -473,7 +491,7 @@ details.story .q>div{margin-top:3px}
     <button type="button" data-go="desk"><span class="st">2</span>Comparison</button>
     <button type="button" data-go="decision"><span class="st">3</span><span>Decision<span class="lg"> Summary</span></span></button>
   </nav>
-  <div class="meta-r"><span id="modeTag">Concept V0.8 · independent concept, not an official Motorway system</span></div>
+  <div class="meta-r"><span id="modeTag">Concept V0.8 · independent concept, not an official Motorway system</span><button class="link" type="button" id="newAppr">New appraisal</button></div>
 </header>
 
 <section class="band" id="band" aria-label="Car being appraised" hidden></section>
@@ -600,7 +618,7 @@ details.story .q>div{margin-top:3px}
       <div class="mcards" id="mcards"></div>
       <div class="deskft">
         <span id="rowNote"></span>
-        <span class="r"><button class="link" type="button" id="addFrom">Add from import</button><button class="link" type="button" id="notesBtn" aria-expanded="false">What the notes mean</button></span>
+        <span class="r"><button class="link" type="button" id="clearSel">Clear selections</button><button class="link" type="button" id="restoreSel">Restore suggested shortlist</button><button class="link" type="button" id="addFrom">Add from import</button><button class="link" type="button" id="notesBtn" aria-expanded="false">What the notes mean</button></span>
       </div>
       <div class="explain" id="notesHelp" hidden>
         <ul>
@@ -645,6 +663,7 @@ details.story .q>div{margin-top:3px}
 </main>
 
 <!-- Sticky Back / Continue: one obvious next action per stage -->
+<dialog class="dlg" id="newDlg" aria-labelledby="newDlgT"><p id="newDlgT">Start a new appraisal? Current unsaved appraisal data will be cleared.</p><div class="row"><button class="btn secondary" type="button" id="newCancel">Cancel</button><button class="btn primary" type="button" id="newGo">Start new appraisal</button></div></dialog>
 <nav class="actbar" id="actbar" aria-label="Step actions" hidden>
   <button class="btn ghostb" type="button" id="actBack">← Back</button>
   <div class="actmid" id="actMid"></div>
@@ -1115,6 +1134,10 @@ var MPD = (function(){
     return {mentions:mentions,facts:facts,importOrigReg:m?parseDate(m[1]):null,text:d};
   }
 
+  // ---------- CSV (RFC 4180): quote when needed, double inner quotes, CRLF rows, blank for missing ----------
+  function csvCell(v){if(v===null||v===undefined)return '';var t=String(v);return /[",\r\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t}
+  function toCsv(headers,rows){return [headers].concat(rows).map(function(r){return r.map(csvCell).join(',')}).join('\r\n')+'\r\n'}
+
   // ---------- Listing links from the clipboard HTML (Ctrl+V only). Real /used-cars/info/ URLs as read; never built or searched. ----------
   var RX_INFO=/^https?:\/\/(www\.)?sgcarmart\.com\/used-cars\/info\/[^\s"'<>]*?-(\d+)\/?(\?[^\s"'<>]*)?$/i;
   function htmlText(h){return String(h||'').replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&#39;|&apos;/g,'’').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim()}
@@ -1224,7 +1247,7 @@ var MPD = (function(){
     buildPool:buildPool,familyKey:familyKey,evidence:evidence,economics:economics,F:F,
     isOwnStock:isOwnStock,variantClass:variantClass,defaultInclude:defaultInclude,whyComp:whyComp,market:market,carStory:carStory,
     identity:identity,snapshotFrom:snapshotFrom,diffSnapshots:diffSnapshots,marketRead:marketRead,
-    listingLinks:listingLinks,attachLinks:attachLinks};
+    listingLinks:listingLinks,attachLinks:attachLinks,csvCell:csvCell,toCsv:toCsv};
 })();
 if(typeof module!=='undefined')module.exports=MPD;
 </script>
@@ -1343,9 +1366,9 @@ if(typeof module!=='undefined')module.exports=MPD;
     }else if(S.view==='desk'){
       back.innerHTML=lbl('← Shortlist','← Back');next.innerHTML=lbl('Decision Summary →','Decision →');
       var e=M.economics(inputs());
-      mid.innerHTML='<span class="maxchip'+(e.provisional?' prov':'')+'"><span class="eyebrow onDark">Max purchase</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b></span>';
+      mid.innerHTML='<span class="maxchip" aria-live="polite"><span class="eyebrow">Max purchase</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b>'+(e.provisional?'<span class="prov">provisional</span>':'')+'</span>';
     }else if(S.view==='decision'){
-      back.innerHTML=lbl('← Comparison','← Back');next.textContent='Copy owner summary';
+      back.innerHTML=lbl('← Comparison','← Back');next.textContent='Copy appraisal summary';
     }
   }
   $('actBack').addEventListener('click',function(){
@@ -2020,6 +2043,11 @@ if(typeof module!=='undefined')module.exports=MPD;
 
   function onInc(e){var id=e.target.dataset&&e.target.dataset.id;if(!id)return;S.inc[id]=e.target.checked;render()}
   $('rows').addEventListener('change',onInc);$('mcards').addEventListener('change',onInc);
+  // Clear = untick everything on the desk. Restore = the desk's own deterministic default ticks (defaultInc), nothing more.
+  $('clearSel').addEventListener('click',function(){deskList().forEach(function(l){S.inc[l.id]=false});render();renderActions()});
+  $('restoreSel').addEventListener('click',function(){if(S.pool){defaultInc();render();renderActions()}});
+  // Enter in a money input moves to the next input; it never submits or resets anything.
+  $('rail').addEventListener('keydown',function(e){if(e.key!=='Enter')return;var i=INPUT_IDS.indexOf(e.target.id);if(i>=0){e.preventDefault();if(i<INPUT_IDS.length-1)$(INPUT_IDS[i+1]).focus()}});
   $('deskHead').addEventListener('click',function(e){
     var b=e.target.closest('button[data-k]');if(!b)return;var k=b.dataset.k;
     if(S.sort===k)S.dir=-S.dir;else{S.sort=k;S.dir=1}
@@ -2041,11 +2069,12 @@ if(typeof module!=='undefined')module.exports=MPD;
   document.querySelector('.nav').addEventListener('click',function(e){var b=e.target.closest('button[data-go]');if(!b||b.disabled)return;if(b.dataset.go==='import'&&S.pool)return goPool();go(b.dataset.go)});
 
   // ---------- 3 · Decision Summary: a second view over the same state. Exceptions first. ----------
-  function exceptionsList(mk,e,v){
+  // share=true → the text that leaves the desk (summary, CSV): no dealer / seller names.
+  function exceptionsList(mk,e,v,share){
     var x=[],s=S.subject,set=counted();
     if(mk.evidence.n&&mk.thin)x.push('<b>Thin market / review</b> — '+esc(mk.reasons[0])+'.');
     set.filter(function(l){return l.own}).forEach(function(l){x.push('<b>Motorway stock ticked</b> — Listing '+l.id+' is counted in the asking figures by dealer choice. It is not independent evidence.')});
-    S.listings.filter(function(l){return l.possibleSame}).forEach(function(l){x.push('<b>Possible same car</b> — Listing '+l.id+(l.dealer?' ('+esc(l.dealer)+')':'')+' has the same registration date, variant and COE left'+(set.indexOf(l)>=0?'; it is ticked':'; kept out of the figures')+'.')});
+    S.listings.filter(function(l){return l.possibleSame}).forEach(function(l){x.push('<b>Possible same car</b> — Listing '+l.id+(l.dealer&&!share?' ('+esc(l.dealer)+')':'')+' has the same registration date, variant and COE left'+(set.indexOf(l)>=0?'; it is ticked':'; kept out of the figures')+'.')});
     if(mk.adjacent)x.push('<b>Related variants</b> — '+mk.adjacent+' of '+mk.evidence.n+' ticked comps are not the same spec ('+esc(uniq(set.filter(function(l){return !l.own&&l.vclass!=='exact'&&l.price!==null}).map(function(l){return l.vlabel.replace(/^Related variant — /,'').replace(/ · not the same spec$/,'')})).join('; '))+').');
     if(e.provisional)x.push('<b>Some costs are blank and currently treated as $0</b> — '+esc(e.blanks.join(', '))+'. The maximum below is provisional.');
     if(v.resale===null)x.push('<b>Expected sale price not entered</b> — the maximum cannot be calculated. Dealer input on the Comparison desk.');
@@ -2060,7 +2089,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     var h='';
     // 01 Car
     var facts=[['Registered',s.reg?M.fmtISO(s.reg):null],['Mileage',s.km!==null?kmF(s.km)+' km':null],['Transfers',s.transfers,s.owners!==null?' · owners '+s.owners+' (derived)':''],['COE',s.coeM!==null?ym(s.coeM):null,s.coeM!==null?' '+coeWord(s):''],['Propellant',s.propellant]];
-    h+='<div class="dechead mobile-only">Decision Summary</div>'+
+    h+='<div class="printhead">Motorway Pricing Desk · appraisal sheet · '+asAtStr()+' · concept, not an official Motorway system · asking prices are not sale prices</div>'+
+      '<div class="dechead mobile-only">Decision Summary</div>'+
       '<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
@@ -2114,8 +2144,8 @@ if(typeof module!=='undefined')module.exports=MPD;
       (fgp!==null?'<div class="sub num" style="margin-top:8px">'+plain(v.resale)+' − '+plain(e.r0)+' − '+plain(e.o0)+' − '+plain(fo)+(v.profit!==null?' · '+(fgp===v.profit?'equal to target':money(Math.abs(fgp-v.profit))+(fgp>v.profit?' above':' below')+' target'):'')+'</div>':'')+
       '<div style="font-size:14px;font-weight:600;margin-top:14px">Owner makes the final decision.</div></div></div></div>';
     // 08 Owner summary
-    h+='<div class="step"><div class="no">08<br>SHARE</div><div><h2>Owner summary</h2><div class="sub">Short, WhatsApp-friendly. Evidence and dealer maths only — not a valuation.</div>'+
-      '<div class="actions-inline"><button class="btn secondary" type="button" id="copySum">Copy owner summary</button><span class="sub" id="copyMsg" role="status"></span></div>'+
+    h+='<div class="step"><div class="no">08<br>SHARE</div><div><h2>Appraisal summary</h2><div class="sub">Short, WhatsApp-friendly. Evidence and dealer maths only — not a valuation.</div>'+
+      '<div class="actions-inline"><button class="btn secondary" type="button" id="copySum">Copy appraisal summary</button><button class="btn secondary" type="button" id="exportCsv">Export CSV</button><button class="btn secondary" type="button" id="printBtn">Print / Save PDF</button><button class="link" type="button" id="newAppr2">New appraisal</button><span class="sub" id="copyMsg" role="status"></span></div>'+
       '<div class="summ" id="sumText">'+esc(ownerSummary())+'</div></div></div>';
     var focus=document.activeElement&&document.activeElement.id==='final',pos=focus?document.activeElement.selectionStart:0;
     $('decBody').innerHTML=h;
@@ -2126,26 +2156,65 @@ if(typeof module!=='undefined')module.exports=MPD;
   $('decBody').addEventListener('click',function(e){
     if(e.target.dataset&&e.target.dataset.more){e.target.parentNode.querySelectorAll('.obs.x').forEach(function(n){n.classList.remove('x')});e.target.remove()}
     if(e.target.id==='copySum')copyOwnerSummary();
+    if(e.target.id==='exportCsv')exportCsv();
+    if(e.target.id==='printBtn')window.print();
+    if(e.target.id==='newAppr2')newAppraisal();
   });
   // Owner summary: facts, evidence state and dealer maths. No PII exists in state, so none can be included.
+  // Compact, WhatsApp / email friendly. Only figures that exist; nothing invented; vehicle fields already on the desk only.
+  function plainText(h){return String(h).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim()}
   function ownerSummary(){
     var s=S.subject,set=counted(),mk=M.market(set,S.listings),ev=mk.evidence,v=inputs(),e=M.economics(v),fo=M.toNum(S.finalOffer);
-    var L=[];
-    L.push(s.name+(s.reg?' · reg '+M.fmtISO(s.reg):''));
-    L.push((s.km!==null?kmF(s.km)+' km':'mileage n/s')+' · transfers '+(s.transfers!==null?s.transfers:'n/s')+(s.owners!==null?' (owners '+s.owners+', derived)':'')+' · COE '+(s.coeM!==null?ym(s.coeM)+' '+coeWord(s):'n/s'));
-    L.push('MAXIMUM PURCHASE: '+(e.max===null?'—':money(e.max))+(e.provisional?' (PROVISIONAL — blank costs counted as $0)':''));
-    L.push('');
-    L.push('Market evidence: '+(ev.n?(mk.thin?'THIN MARKET / REVIEW':'OK'):'none ticked'));
-    L.push('Exact independent comps: '+mk.exactIndependent+' · related (not same spec): '+mk.adjacent+(mk.ownParsed?' · Motorway stock '+(mk.ownTicked?'INCLUDED by dealer ('+mk.ownTicked+')':'excluded ('+mk.ownParsed+')'):''));
-    if(ev.n)L.push('Median asking '+money(ev.med)+' · range '+money(ev.low)+'–'+money(ev.high));
-    if(mk.thin&&ev.n)mk.reasons.forEach(function(r){L.push('- '+r)});
-    L.push('');
-    L.push('Deal numbers: sale price '+(v.resale===null?'not entered':money(v.resale))+' · recon '+(v.recon===null?'blank':money(v.recon))+' · other '+(v.other===null?'blank':money(v.other))+' · target gross profit '+(v.profit===null?'blank':money(v.profit)));
-    if(fo!==null)L.push('Final offer (owner): '+money(fo));
-    L.push('');
-    L.push('Asking prices are not sale prices.');
+    var fgp=(v.resale===null||fo===null)?null:v.resale-e.r0-e.o0-fo;
+    var L=[],car=[];
+    L.push(s.name);
+    if(s.km!==null)car.push(kmF(s.km)+' km');if(s.owners!==null)car.push(s.owners+' owners');if(s.coeM!==null)car.push('COE '+ym(s.coeM));
+    if(car.length)L.push(car.join(' · '));
+    L.push('');L.push('Market evidence');
+    L.push(ev.n+' comp'+pl(ev.n,'','s')+' selected'+(ev.n?' ('+mk.exactIndependent+' exact · '+mk.adjacent+' related)':''));
+    if(ev.med!==null)L.push('Median asking: '+money(ev.med));
+    if(ev.n>1)L.push('Asking range: '+money(ev.low)+'–'+money(ev.high));
+    if(ev.depMed!==null)L.push('Median depreciation: '+money(ev.depMed)+'/yr');
+    L.push('');L.push('Deal numbers');
+    if(v.resale!==null)L.push('Expected sale: '+money(v.resale));
+    if(v.recon!==null)L.push('Recon / repairs: '+money(v.recon));
+    if(v.other!==null)L.push('Other costs: '+money(v.other));
+    if(v.profit!==null)L.push('Target gross profit: '+money(v.profit));
+    if(e.max!==null)L.push('Maximum purchase: '+money(e.max)+(e.provisional?' (provisional)':''));
+    if(fo!==null)L.push('Final offer: '+money(fo));
+    if(fgp!==null)L.push('Projected gross profit: '+money(fgp));
+    if(v.resale===null)L.push('Expected sale price not entered');
+    var ex=exceptionsList(mk,e,v,true).map(plainText);
+    if(ex.length){L.push('');L.push('Exceptions / notes:');ex.forEach(function(x){L.push('- '+x)})}
+    L.push('');L.push('Asking prices are not sale prices.');
     return L.join('\n');
   }
+  // One appraisal = one CSV row. Vehicle fields already visible on the desk only; no LTA personal fields, no seller names, no raw text.
+  function appraisalCsv(){
+    var s=S.subject,set=counted(),mk=M.market(set,S.listings),ev=mk.evidence,v=inputs(),e=M.economics(v),fo=M.toNum(S.finalOffer);
+    var fgp=(v.resale===null||fo===null)?null:v.resale-e.r0-e.o0-fo;
+    var iso=function(d){return d?d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2):null};
+    var headers=['Appraisal date','Make','Model','Registration date','Year of manufacture','Mileage (km)','Transfers','Owners (derived)','COE expiry','COE left','OMV','ARF','COE QP','Minimum PARF benefit','Selected comps','Median asking','Median depreciation / yr','Expected sale price','Reconditioning / repairs','Other costs','Target gross profit','Maximum purchase price','Final offer','Projected gross profit','Exceptions / notes'];
+    var row=[iso(S.asAt),s.make||null,s.model||null,s.reg,s.yearMfg,s.km,s.transfers,s.owners,s.coeExpiry,s.coeM!==null?ym(s.coeM):null,s.omv,s.arf,s.qp,s.parf,ev.n,ev.med,ev.depMed,v.resale,v.recon,v.other,v.profit,e.max,fo,fgp,exceptionsList(mk,e,v,true).map(plainText).join('; ')||null];
+    return {headers:headers,row:row};
+  }
+  function exportCsv(){
+    var c=appraisalCsv(),s=S.subject,slug=String(s.name||'appraisal').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    var blob=new Blob(['﻿'+M.toCsv(c.headers,[c.row])],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='appraisal-'+c.row[0]+'-'+slug+'.csv';
+    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},0);
+    var msg=$('copyMsg');if(msg)msg.textContent='CSV downloaded — one row, opens in Excel or Google Sheets.';
+  }
+  // New appraisal: in-memory only, so a reload is a clean start. Saved snapshot files on disk are untouched.
+  function meaningfulWork(){return !!(S.lta||S.listings.length||INPUT_IDS.some(function(k){return readNum(k)!==null})||M.toNum(S.finalOffer)!==null)}
+  function newAppraisal(){
+    if(!meaningfulWork())return location.reload();
+    var d=$('newDlg');
+    if(d&&d.showModal)d.showModal();else if(confirm('Start a new appraisal? Current unsaved appraisal data will be cleared.'))location.reload();
+  }
+  $('newAppr').addEventListener('click',newAppraisal);
+  $('newCancel').addEventListener('click',function(){$('newDlg').close()});
+  $('newGo').addEventListener('click',function(){location.reload()});
   function copyOwnerSummary(){
     if(S.view!=='decision')return;
     var t=ownerSummary(),msg=$('copyMsg');

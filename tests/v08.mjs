@@ -288,4 +288,9 @@ t.eq('boundary kept: personal label elsewhere but own column NOT empty → stop'
 t.eq('boundary kept: personal label in the other column never yields a value from that row', M.parseLta(['Open Market Value', '\tOwner Name', '\tJOHN DOE', '$1.00']).fields.omv.value, null);
 t.eq('columns: tab count between items follows column starts (label col 0, value col 1)', M.itemsToLines([{str:'Vehicle Make',x:56,y:700,w:60,page:1},{str:'PORSCHE',x:300,y:700,w:40,page:1},{str:'a',x:56,y:680,w:5,page:1},{str:'b',x:300,y:680,w:5,page:1},{str:'c',x:56,y:660,w:5,page:1},{str:'d',x:300,y:660,w:5,page:1}])[0], 'Vehicle Make\tPORSCHE');
 
+// ================================================================ L. CSV export core (RFC 4180)
+t.eq('csv: plain values pass through, missing → blank', M.toCsv(['a', 'b', 'c'], [[1, null, 'x']]), 'a,b,c\r\n1,,x\r\n');
+t.eq('csv: commas, quotes and line breaks are quoted / doubled', M.toCsv(['n'], [['Thin market; 0 exact, 3 related'], ['say "hi"'], ['line1\nline2']]), 'n\r\n"Thin market; 0 exact, 3 related"\r\n"say ""hi"""\r\n"line1\nline2"\r\n');
+t.eq('csv: numbers stay unformatted so spreadsheets read them as numbers', M.csvCell(136610), '136610');
+
 process.exit(t.done() ? 1 : 0);
