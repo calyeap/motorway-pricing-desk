@@ -168,15 +168,18 @@ async function taycanSubject(p) {
   await p.goto(base + 'motorway-pricing-desk.html');
   await taycanSubject(p);
   await next(p);
-  // "Paste & save today": clipboard read is blocked in the test browser, so the button falls back to the paste box.
-  await p.click('#pasteSaveBtn');
-  const dl = p.waitForEvent('download');
+  check('D: import screen has one paste action only', (await p.locator('#stPaste .btn').count()) === 1 && (await text(p, '#pasteBtn')) === 'Paste SGCarMart results' && !(await p.content()).includes('pasteSaveBtn'));
   await paste(p, TAYCAN);
+  await p.waitForSelector('#stPool:not([hidden])');
+  check('D: pool tab reads "Wider matches"', (await text(p, 'button[data-tab="plaus"]')).startsWith('Wider matches') && !(await text(p, '#stPool')).includes('Plausible'));
+  // Snapshot saving lives in the parsed-results strip: paste = appraise now, Save snapshot = track the market later.
+  const dl = p.waitForEvent('download');
+  await p.click('#saveSnap');
   const file = await dl;
   const snapPath = out + 'snapshot-taycan.json';
   await file.saveAs(snapPath);
   const snap = JSON.parse(readFileSync(snapPath, 'utf8'));
-  check('D: Paste & save today downloads a snapshot', snap.kind === 'mpd-market-snapshot' && snap.captured === 9 && snap.sgcmTotal === 9 && snap.search === 'porsche taycan 4s', file.suggestedFilename());
+  check('D: Save snapshot (after parsing) downloads a snapshot', snap.kind === 'mpd-market-snapshot' && snap.captured === 9 && snap.sgcmTotal === 9 && snap.search === 'porsche taycan 4s', file.suggestedFilename());
   check('D: snapshot holds no subject / LTA data', !/Taycan 4S 4\+1|35000|136610|182898|coeExpiry|transfers/.test(JSON.stringify(snap)));
   // Next capture: listing 1 cut $10k, listing 2 gone, listing 5 now sold.
   let today = TAYCAN.replace('$378,800', '$368,800');
@@ -377,6 +380,23 @@ async function taycanSubject(p) {
   await p.goto(base + 'motorway-pricing-desk.html');
   await taycanSubject(p); await next(p); await paste(p, TAYCAN); await p.waitForSelector('#stPool:not([hidden])');
   check('H: text-only paste → titles are plain text, no ↗', (await p.evaluate(() => document.querySelectorAll('#poolBody a.name, #poolBody .ext').length)) === 0 && (await p.evaluate(() => window.__mpd.state.listings.every(l => l.url === null))));
+  await p.context().close();
+}
+
+// ---------------------------------------------------------------- I. LTA diagnostic page never leaks personal data
+{
+  const p = await newPage();
+  await p.goto(base + 'tests/lta-diagnostic.html');
+  await p.setInputFiles('#f', root + 'fixtures/lta-layout-fake-pii.pdf');
+  await p.waitForFunction(() => document.getElementById('out').textContent.length > 200, null, { timeout: 15000 });
+  const rep = await text(p, '#out');
+  const leaked = ['JOHN', 'DOE', 'S0000000A', 'FAKE STREET', 'JANE', 'ROE', 'SXX1234Z', 'WP0ZZZ', 'FAKEMOTOR', '1234567890', '9000 0000', '@'].filter(x => rep.includes(x));
+  check('I: diagnostic report has no fake personal value', !leaked.length, leaked.join(' | '));
+  check('I: diagnostic report shows field status and allowlisted labels', /FIELD STATUS/.test(rep) && /\[make\] label=/.test(rep) && /withheld/.test(rep));
+  await p.setInputFiles('#f', root + 'fixtures/lta-taycan-4s-synthetic.pdf');
+  await p.waitForFunction(() => /Taycan|TAYCAN/.test(document.getElementById('out').textContent), null, { timeout: 15000 });
+  check('I: diagnostic reads the synthetic fixture (11 fields, values typed ok)', /parseLta: 11 of 15/.test(await text(p, '#out')) && /"PORSCHE" ✓ make/.test(await text(p, '#out')));
+  check('I: no page errors', !p.errors.length, p.errors.join(' | '));
   await p.context().close();
 }
 

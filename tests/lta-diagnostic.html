@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LTA PDF layout diagnostic (safe)</title>
+<!--
+  Read-only diagnostic for the LTA "Vehicle Registration Details" PDF parser.
+  Serve the repo locally and open /tests/lta-diagnostic.html. The PDF is read on this device only.
+
+  What it prints: for every allowlisted vehicle label (make, model, dates, OMV, ARF, COE, QP, PARF, transfers…)
+  the same-row candidate cell, whether the parser's type check accepts it, and the structure of the next lines.
+  What it never prints: any text near a personal-data label (owner, ID, address, vehicle/chassis/engine numbers),
+  any cell that looks like an NRIC / email / postal code, or free text the type check rejects (shown as a shape:
+  letters → A, digits → 9). Non-label lines appear as counts only. Nothing leaves the browser.
+-->
+<style>
+  body{font:14px/1.45 system-ui,sans-serif;margin:24px;max-width:960px;color:#1B1B1B}
+  h1{font-size:18px}
+  pre{background:#F4F4F2;border:1px solid #D8D8D6;padding:12px;white-space:pre-wrap;font-size:12px}
+  button{font:inherit;padding:8px 14px}
+  .warn{color:#9A6412}
+</style>
+<h1>LTA PDF layout diagnostic (safe)</h1>
+<p>Pick the LTA Vehicle Registration Details PDF. Output shows only allowlisted vehicle labels, their candidate values and line structure. Personal data is withheld or shape-masked.</p>
+<p><input type="file" id="f" accept="application/pdf,.pdf"> <button id="copy" hidden>Copy report</button></p>
+<p class="warn" id="msg"></p>
+<pre id="out"></pre>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const html = await (await fetch('../motorway-pricing-desk.html')).text();
+const core = html.match(/<script id="mpd-core">([\s\S]*?)<\/script>/)[1]; // the MPD core (no UI, no network)
+const M = new Function('module', core + ';return MPD;')({ exports: {} });
+const pdfjs = await import('../vendor/pdfjs-4.10.38/pdf.min.mjs');
+pdfjs.GlobalWorkerOptions.workerSrc = new URL('../vendor/pdfjs-4.10.38/pdf.worker.min.mjs', location.href).href;
+
+const shape = (s) => String(s).replace(/[A-Za-z]/g, 'A').replace(/\d/g, '9');
+const SKIP = new Set(M.LTA_SKIP.map((x) => x.toLowerCase()));
+const FIELD = {}; M.LTA_FIELDS.forEach((d) => { FIELD[d.k] = d; });
+
+$('f').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  $('msg').textContent = 'Reading on this device…'; $('out').textContent = '';
+  try {
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
+    const items = [];
+    for (let n = 1; n <= Math.min(doc.numPages, 4); n++) {
+      const pg = await doc.getPage(n); const tc = await pg.getTextContent();
+      tc.items.forEach((it) => { if ('str' in it) items.push({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, page: n, h: it.height }); });
+    }
+    let fieldsInForm = 0; try { const fo = await doc.getFieldObjects(); fieldsInForm = fo ? Object.keys(fo).length : 0; } catch (_) {}
+    let producer = '?'; try { const md = await doc.getMetadata(); producer = [md.info?.Producer, md.info?.Creator, md.info?.PDFFormatVersion].filter(Boolean).join(' · '); } catch (_) {}
+    const lines = M.itemsToLines(items).map((s) => String(s).replace(/[  ]{2,}/g, '\t').replace(/ /g, ' ').trim());
+    const res = M.parseLta(lines);
+    const pages = doc.numPages; doc.destroy();
+
+    const L = [];
+    L.push(`LTA diagnostic · pages ${pages} · text items ${items.length} · lines ${lines.length} · AcroForm fields ${fieldsInForm} · producer: ${producer}`);
+    L.push(`parseLta: ${res.found} of ${M.LTA_FIELDS.length} fields found · ${res.skippedLabels} boundary labels seen`);
+    L.push('');
+    L.push('FIELD STATUS');
+    M.LTA_FIELDS.forEach((d) => { const f = res.fields[d.k]; L.push(`  ${d.k.padEnd(14)} ${f.status.padEnd(8)} ${f.value === null ? '— ' + f.source : 'ok'}`); });
+    L.push('');
+    L.push('LINES (allowlisted labels only; personal-label lines withheld; unaccepted free text shape-masked)');
+    lines.forEach((line, i) => {
+      const hits = M.findLabels(line);
+      const lo = line.toLowerCase();
+      const nearPersonal = hits.some((h) => !h.k) || [...SKIP].some((k) => lo.includes(k));
+      const tabs = (line.match(/\t/g) || []).length;
+      if (!hits.length) { L.push(`  L${String(i).padStart(3)}  (no label) cells:${tabs + 1} len:${line.length}`); return; }
+      hits.forEach((h, hi) => {
+        if (!h.k) { L.push(`  L${String(i).padStart(3)}  [personal/boundary label] withheld`); return; }
+        const def = FIELD[h.k];
+        const endAt = hi + 1 < hits.length ? hits[hi + 1].i : line.length;
+        const cell = line.slice(h.end, endAt).replace(/^[\s:|]+/, '').split(/\t|\|/)[0].trim();
+        const rest = line.slice(h.end, endAt);
+        const v = M.typed(def.type, cell);
+        let shown;
+        if (!cell) shown = '(empty — value not on this row)';
+        else if (nearPersonal || M.PII_RX.test(cell)) shown = `[withheld, shape ${shape(cell)}]`;
+        else if (v !== null) shown = `"${cell}" ✓ ${def.type}`;
+        else shown = `shape "${shape(cell)}" ✗ ${def.type}`;
+        L.push(`  L${String(i).padStart(3)}  [${h.k}] label="${line.slice(h.i, h.end)}" cell: ${shown} · cells-after-label:${(rest.match(/\t/g) || []).length + 1} · labels-on-row:${hits.length}`);
+        // Next two lines: structure and, when the value may sit below the label, the typed-checked first cell.
+        for (let k = 1; k <= 2 && i + k < lines.length; k++) {
+          const nx = lines[i + k], nh = M.findLabels(nx), first = nx.split('\t')[0].trim();
+          const nxPersonal = nh.some((x) => !x.k) || [...SKIP].some((s) => nx.toLowerCase().includes(s));
+          const tv = M.typed(def.type, first);
+          const cellShown = nxPersonal || M.PII_RX.test(first) ? '[withheld]' : tv !== null ? `"${first}" ✓ ${def.type}` : `shape "${shape(first).slice(0, 40)}"`;
+          L.push(`        +${k}: labels:[${nh.map((x) => x.k || 'personal').join(',')}] cells:${(nx.match(/\t/g) || []).length + 1} first-cell: ${cellShown}`);
+        }
+      });
+    });
+    $('out').textContent = L.join('\n');
+    $('msg').textContent = 'Done. Review the report, then use Copy report.';
+    $('copy').hidden = false;
+    $('copy').onclick = () => navigator.clipboard.writeText($('out').textContent).then(() => { $('msg').textContent = 'Copied.'; });
+  } catch (err) {
+    $('msg').textContent = 'Could not read this PDF: ' + (err && err.message ? err.message : err);
+  }
+});
+</script>

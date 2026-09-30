@@ -514,8 +514,7 @@ details.story .q>div{margin-top:3px}
       <div class="steps3"><span><i>1</i>On SGCarMart, show your results</span><span><i>2</i>Ctrl + A &nbsp;then&nbsp; Ctrl + C</span><span><i>3</i>Come back here and paste</span></div>
       <div class="drop">
         <button class="btn primary" type="button" id="pasteBtn">Paste SGCarMart results</button>
-        <button class="btn secondary" type="button" id="pasteSaveBtn">Paste &amp; save today</button>
-        <div class="sub">or press Ctrl + V anywhere on this page · “Paste &amp; save today” also downloads a market snapshot file for Market Pulse</div>
+        <div class="sub">or press Ctrl + V anywhere on this page</div>
         <textarea id="pasteBox" class="txt" rows="4" style="width:100%" aria-label="Paste SGCarMart results here" placeholder="Paste here (Ctrl + V)" hidden></textarea>
       </div>
       <div class="msg" id="pasteMsg" role="status" aria-live="polite"></div>
@@ -1179,7 +1178,7 @@ var MPD = (function(){
 
   return {MON:MON,parseDate:parseDate,dateOf:dateOf,fmtISO:fmtISO,monthsBetween:monthsBetween,addMonths:addMonths,ageYears:ageYears,toNum:toNum,median:median,today:today,
     coeDiffers:coeDiffers,coeReason:coeReason,parseSgcm:parseSgcm,shortName:shortName,
-    LTA_FIELDS:LTA_FIELDS,parseLta:parseLta,itemsToLines:itemsToLines,subjectFrom:subjectFrom,titleCase:titleCase,
+    LTA_FIELDS:LTA_FIELDS,LTA_SKIP:LTA_SKIP,findLabels:findLabels,typed:typed,PII_RX:PII_RX,parseLta:parseLta,itemsToLines:itemsToLines,subjectFrom:subjectFrom,titleCase:titleCase,
     buildPool:buildPool,familyKey:familyKey,evidence:evidence,economics:economics,F:F,
     isOwnStock:isOwnStock,variantClass:variantClass,defaultInclude:defaultInclude,whyComp:whyComp,market:market,carStory:carStory,
     identity:identity,snapshotFrom:snapshotFrom,diffSnapshots:diffSnapshots,marketRead:marketRead,
@@ -1222,7 +1221,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     inc:{}, inDesk:{}, sort:'price', dir:1, showSec:false,
     defaults:BLANK_INPUTS,
     finalOffer:'',                 // owner input on the Decision Summary; never overwrites the dealer's starting offer
-    saveNext:false, prevSnap:null, diff:null
+    prevSnap:null, diff:null
   };
 
   // ---------- formatting ----------
@@ -1498,7 +1497,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(!res.listings.length){
       msg.className='msg amb';msg.textContent='No vehicle listings were found in that paste. On the SGCarMart results page press Ctrl + A, then Ctrl + C, and paste again.';
       if(S.stage==='pool')alert('No vehicle listings were found in that paste.');
-      S.saveNext=false;return;
+      return;
     }
     msg.textContent='';
     if(append){
@@ -1510,8 +1509,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     }
     S.fieldsInSource=res.fieldsInSource;S.demo=false;
     if(S.prevSnap)S.diff=M.diffSnapshots(S.prevSnap,currentSnapshot());
-    var save=S.saveNext;S.saveNext=false;
-    runProcessing(res,function(){rebuildPool(!append);S.tab='short';goPool();if(save)downloadSnapshot()});
+    runProcessing(res,function(){rebuildPool(!append);S.tab='short';goPool()});
   }
   function runProcessing(res,done){
     setStage('proc');
@@ -1543,8 +1541,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       navigator.clipboard.readText().then(function(t){if(t&&t.trim())onPasteText(t,false);else{box.hidden=false;box.focus()}},function(){box.hidden=false;box.focus()});
     }else{box.hidden=false;box.focus()}
   }
-  $('pasteBtn').addEventListener('click',function(){S.saveNext=false;askPaste()});
-  $('pasteSaveBtn').addEventListener('click',function(){S.saveNext=true;askPaste()});
+  $('pasteBtn').addEventListener('click',askPaste);
   document.addEventListener('paste',function(e){
     if(S.view!=='import'||(S.stage!=='paste'&&S.stage!=='pool'))return;
     if(e.target&&e.target.id!=='pasteBox'&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;
@@ -1677,10 +1674,10 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(!S.pool)return;
     fillPoolFilters();renderStrip();renderPulse('pulse',false);
     var c=counts();
-    var tabs=[['short','Suggested shortlist',c.short],['plaus','Plausible',c.plaus],['all','All parsed',c.all],['needs','Needs input',c.needs],['ign','Ignored',S.ignored.length]];
+    var tabs=[['short','Suggested shortlist',c.short],['plaus','Wider matches',c.plaus],['all','All parsed',c.all],['needs','Needs input',c.needs],['ign','Ignored',S.ignored.length]];
     $('poolTabs').innerHTML=tabs.map(function(t){return '<button class="tab'+(S.tab===t[0]?' on':'')+'" type="button" role="tab" aria-selected="'+(S.tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'<span class="c num">'+t[2]+'</span></button>'}).join('');
     var subj=S.subject,fk=S.pool.family;
-    var titles={short:'Suggested shortlist',plaus:'Plausible candidates',all:'All parsed listings',needs:'Needs dealer input',ign:'Ignored page text'};
+    var titles={short:'Suggested shortlist',plaus:'Wider matches',all:'All parsed listings',needs:'Needs dealer input',ign:'Ignored page text'};
     $('poolTitle').textContent=titles[S.tab];
     $('whyBtn').hidden=S.tab!=='short';
     var regWin=subj.reg?monYr(isoAdd(subj.reg,-18))+' – '+monYr(isoAdd(subj.reg,18)):'any date';
@@ -1716,7 +1713,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     return [
       ['In shortlist · '+ns,g('short'),Object.keys(S.inc).filter(function(id){return S.inc[id]&&tierOf(byId(id))==='short'}).length+' included'],
       ['Needs dealer input · '+g('needs').length,g('needs'),'two source values conflict — pick one; nothing is guessed'],
-      ['Plausible · '+g('plausible').length+' more',g('plausible'),'same model family · original COE · registered within 3 years · exact values accepted as read'],
+      ['Wider matches · '+g('plausible').length+' more',g('plausible'),'same model family · original COE · registered within 3 years · exact values accepted as read'],
       ['Set aside · '+aside.length,aside,'sold, different model or body style, renewed or short COE, or registered far apart']
     ];
   }
