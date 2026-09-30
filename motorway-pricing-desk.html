@@ -895,7 +895,8 @@ var MPD = (function(){
           var col=colOf(line,h.i);
           for(var k=1;k<=2&&li+k<lines.length;k++){
             var nx=lines[li+k],nh=findLabels(nx);
-            if(nh.some(function(x){return !x.k}))break;
+            if(nh.some(function(x){return !x.k&&colOf(nx,x.i)===col}))break;                      // personal / boundary label in this column: stop
+            if(nh.some(function(x){return !x.k})){if((nx.split('\t')[col]||'').trim())break;continue} // elsewhere on the row: skip it, but only if this column is empty there
             if(nh.length){if(nh.some(function(x){return colOf(nx,x.i)===col}))break;continue}
             var cand=(nx.split('\t')[col]||'').replace(/^[\s:|]+/,'').split('|')[0].trim();
             if(!cand)continue;
@@ -932,11 +933,18 @@ var MPD = (function(){
       r.items.push(it);
     });
     rows.sort(function(a,b){return a.page-b.page||b.y-a.y});
+    // Column starts per page: x positions where 3+ text items begin. A row's leading tabs = columns to its left,
+    // so a right-column row holding a single item lands in the right column, not column 0.
+    var starts={};rows.forEach(function(r){r.items.forEach(function(it){var k=r.page+':'+(Math.round(it.x/4)*4);starts[k]=(starts[k]||0)+1})});
+    var cols={};Object.keys(starts).forEach(function(k){if(starts[k]>=3){var p=k.split(':');(cols[p[0]]=cols[p[0]]||[]).push(+p[1])}});
+    var colIdx=function(page,x){return (cols[page]||[]).filter(function(c){return c<x-8}).length};
     return rows.map(function(r){
       r.items.sort(function(a,b){return a.x-b.x});
-      var s='',prevEnd=null;
+      var s='',prevEnd=null,prevCol=0,lead=colIdx(r.page,r.items[0].x);
+      for(var t=0;t<lead;t++)s+='\t';
+      prevCol=lead;
       r.items.forEach(function(it){
-        if(prevEnd!==null){var gap=it.x-prevEnd;s+=gap>14?'\t':(gap>1.5&&!/\s$/.test(s)&&!/^\s/.test(it.str)?' ':'')}
+        if(prevEnd!==null){var gap=it.x-prevEnd;if(gap>14){var c=colIdx(r.page,it.x),n=Math.max(1,c-prevCol);for(var u=0;u<n;u++)s+='\t';prevCol=Math.max(c,prevCol+1)}else if(gap>1.5&&!/\s$/.test(s)&&!/^\s/.test(it.str))s+=' '}
         s+=it.str;prevEnd=it.x+(it.w||0);
       });
       return s;

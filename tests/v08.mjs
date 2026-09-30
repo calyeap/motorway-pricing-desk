@@ -265,4 +265,27 @@ t.eq('free text below a label is taken only when led by a known make', [M.parseL
 t.eq('make split only from a real make; otherwise model kept whole and make missing', (f => [f.make.value, f.model.value])(M.parseLta(['Vehicle Model\tNOTAMAKE/THING']).fields), [null, 'NOTAMAKE/THING']);
 t.eq('make field present on the document wins over derivation', (f => [f.make.value, f.make.status, f.model.value])(M.parseLta(['Vehicle Make\tPORSCHE', 'Vehicle Model\tTAYCAN 4S']).fields), ['PORSCHE', 'exact', 'TAYCAN 4S']);
 
+// ================================================================ K. Regression: model value below a right-column personal-label row (Vendi's document)
+// Layout: "Vehicle Model" (left column) · next visual row holds only "Vehicle No." in the RIGHT column · then the
+// model value in the left column · then the vehicle number in the right column. Fake values only.
+const K_ITEMS = [];
+const add = (str, x, y) => K_ITEMS.push({ str, x, y, w: str.length * 5, page: 1 });
+add('Vehicle Registration Details', 56, 780);
+add('Vehicle Model', 56, 740); add('Vehicle No.', 300, 733);
+add('PORSCHE/TAYCAN 4S', 56, 720); add('SXX1234Z', 300, 713);
+add('Propellant', 56, 700); add('Owner Name', 300, 693);
+add('Electric', 56, 680); add('JOHN DOE', 300, 673);
+add('Open Market Value', 56, 660); add('Registered Address', 300, 653);
+add('$136,610.00', 56, 640); add('1 FAKE STREET', 300, 633);
+const K_LINES = M.itemsToLines(K_ITEMS);
+t.eq('regression: a lone right-column item lands in column 1, not column 0', [K_LINES[1], K_LINES[2], K_LINES[3]], ['Vehicle Model', '\tVehicle No.', 'PORSCHE/TAYCAN 4S']);
+const KJ = M.parseLta(K_LINES);
+t.eq('regression: model read past a personal label that sits in the other column; make derived', [KJ.fields.model.value, KJ.fields.make.value, KJ.fields.make.status, KJ.fields.propellant.value, KJ.fields.omv.value], ['TAYCAN 4S', 'PORSCHE', 'derived', 'Electric', 136610]);
+t.ok('regression: nothing personal in the output', !/SXX1234Z|JOHN|DOE|FAKE STREET/.test(JSON.stringify(KJ)));
+t.eq('regression (lines form): personal label in the other column, own column empty → continue', M.parseLta(['Vehicle Model', '\tVehicle No.', 'PORSCHE/TAYCAN 4S']).fields.model.value, 'TAYCAN 4S');
+t.eq('boundary kept: personal label in the SAME column → stop', M.parseLta(['Vehicle Model', 'Vehicle No.', 'PORSCHE/TAYCAN 4S']).fields.model.value, null);
+t.eq('boundary kept: personal label elsewhere but own column NOT empty → stop', M.parseLta(['Vehicle Model', 'SXX1234Z\tOwner Name', 'PORSCHE/TAYCAN 4S']).fields.model.value, null);
+t.eq('boundary kept: personal label in the other column never yields a value from that row', M.parseLta(['Open Market Value', '\tOwner Name', '\tJOHN DOE', '$1.00']).fields.omv.value, null);
+t.eq('columns: tab count between items follows column starts (label col 0, value col 1)', M.itemsToLines([{str:'Vehicle Make',x:56,y:700,w:60,page:1},{str:'PORSCHE',x:300,y:700,w:40,page:1},{str:'a',x:56,y:680,w:5,page:1},{str:'b',x:300,y:680,w:5,page:1},{str:'c',x:56,y:660,w:5,page:1},{str:'d',x:300,y:660,w:5,page:1}])[0], 'Vehicle Make\tPORSCHE');
+
 process.exit(t.done() ? 1 : 0);
