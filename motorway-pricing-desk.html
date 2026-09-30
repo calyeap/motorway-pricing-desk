@@ -166,6 +166,7 @@ button,input,select{font:inherit;color:inherit}
 .strip .needsBtn b{font-weight:500}
 .wrapP{padding:20px var(--pad) 24px}
 .panel{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;min-width:0;border-radius:var(--r-panel);overflow:hidden}
+#stPool .panel{min-height:60vh} /* tab switches don't jump the footer */
 .tabs{display:flex;align-items:center;gap:12px;padding:8px 16px 0;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
 .tabs .tl{display:flex;gap:22px;flex-wrap:wrap}
 .tab{white-space:nowrap;font-family:var(--mont);font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--muted);background:none;border:0;border-bottom:2px solid transparent;padding:10px 2px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
@@ -1361,10 +1362,10 @@ if(typeof module!=='undefined')module.exports=MPD;
       back.innerHTML=lbl('← This car','← Back');
       next.innerHTML=S.listings.length?lbl('Review shortlist →','Shortlist →'):'Paste results to continue';next.disabled=!S.listings.length;
     }else if(S.view==='import'&&S.stage==='pool'){
-      back.innerHTML=lbl('← Paste','← Back');
-      next.innerHTML=lbl('Continue to Comparison →','Comparison →');next.disabled=!deskList().length;
+      back.innerHTML=lbl('← Edit import','← Back');
+      next.textContent='Comparison →';next.disabled=!deskList().length;
     }else if(S.view==='desk'){
-      back.innerHTML=lbl('← Shortlist','← Back');next.innerHTML=lbl('Decision Summary →','Decision →');
+      back.innerHTML=lbl('← Shortlist','← Back');next.textContent='Decision →';
       var e=M.economics(inputs());
       mid.innerHTML='<span class="maxchip" aria-live="polite"><span class="eyebrow">Max purchase</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b>'+(e.provisional?'<span class="prov">provisional</span>':'')+'</span>';
     }else if(S.view==='decision'){
@@ -1400,7 +1401,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(s.yearMfg)line.push('Made '+s.yearMfg);
     line.push('Min. PARF benefit '+(s.parf!==null?'<b class="num">'+money(s.parf)+'</b>':'<span class="na">not stated</span>'));
     // Compact context line: only the values the LTA document actually gave. Context only — never in the maths.
-    var ctx=[];if(s.omv!==null)ctx.push('OMV <b class="num">'+money(s.omv)+'</b>');if(s.arf!==null)ctx.push('ARF <b class="num">'+money(s.arf)+'</b>');if(s.qp!==null)ctx.push('COE (QP) <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):''));
+    var ctx=[];if(s.omv!==null)ctx.push('OMV <b class="num">'+money(s.omv)+'</b>');if(s.arf!==null)ctx.push('ARF <b class="num">'+money(s.arf)+'</b>');
+    var coe=[];if(s.coeExpiry)coe.push('COE expires <b class="num">'+M.fmtISO(s.coeExpiry)+'</b>');if(s.qp!==null)coe.push('COE paid (QP) <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):''));
     b.innerHTML=
       '<div class="who"><div class="eyebrow onDark">Appraising · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="model">'+esc(s.name)+'</div><div class="line">'+line.join(' · ')+'</div></div>'+
@@ -1410,6 +1412,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
         '<div class="sec">'+(s.reg?'<div>Registered <b class="num">'+M.fmtISO(s.reg)+'</b></div>':'')+
         (ctx.length?'<div>'+ctx.join(' · ')+' · context only</div>':'')+
+        (coe.length?'<div>'+coe.join(' · ')+'</div>':'')+
         (s.transfers!==null&&s.owners!==null?'<div class="sm">'+s.transfers+' transfer'+pl(s.transfers,'','s')+' → '+s.owners+' owners (derived)'+(s.coeM!==null?' · COE '+coeWord(s):'')+'</div>':'')+
         (s.roadTaxExpiry?'<div>Road tax to <b class="num">'+M.fmtISO(s.roadTaxExpiry)+'</b></div>':'')+'</div>'+
         '<button class="link details" type="button" aria-expanded="false">Details ▾</button>'+
@@ -1743,7 +1746,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(!S.pool)return;
     fillPoolFilters();renderStrip();renderPulse('pulse',false);
     var c=counts();
-    var tabs=[['short','Suggested shortlist',c.short],['plaus','Wider matches',c.plaus],['all','All listings',c.all]];
+    var wider=S.listings.some(function(l){return tierOf(l)==='plausible'});   // anything beyond what the shortlist already shows?
+    var tabs=[['short','Suggested shortlist',c.short]].concat(wider?[['plaus','Wider matches',c.plaus]]:[]).concat([['all','All listings',c.all]]);
     if(c.needs)tabs.push(['needs','Needs review',c.needs]);
     if(!tabs.some(function(t){return t[0]===S.tab}))S.tab='short';
     $('poolTabs').innerHTML=tabs.map(function(t){return '<button class="tab'+(S.tab===t[0]?' on':'')+'" type="button" role="tab" aria-selected="'+(S.tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'<span class="c num">'+t[2]+'</span></button>'}).join('');
@@ -2094,7 +2098,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
-      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · COE (QP) '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
+      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · COE paid (QP) '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
     // 02 Exceptions first
     var ex=exceptionsList(mk,e,v);
     h+='<div class="step"><div class="no">02<br>CHECK</div><div><h2>Exceptions to review</h2>'+
@@ -2194,7 +2198,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var s=S.subject,set=counted(),mk=M.market(set,S.listings),ev=mk.evidence,v=inputs(),e=M.economics(v),fo=M.toNum(S.finalOffer);
     var fgp=(v.resale===null||fo===null)?null:v.resale-e.r0-e.o0-fo;
     var iso=function(d){return d?d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2):null};
-    var headers=['Appraisal date','Make','Model','Registration date','Year of manufacture','Mileage (km)','Transfers','Owners (derived)','COE expiry','COE left','OMV','ARF','COE QP','Minimum PARF benefit','Selected comps','Median asking','Median depreciation / yr','Expected sale price','Reconditioning / repairs','Other costs','Target gross profit','Maximum purchase price','Final offer','Projected gross profit','Exceptions / notes'];
+    var headers=['Appraisal date','Make','Model','Registration date','Year of manufacture','Mileage (km)','Transfers','Owners (derived)','COE expiry','COE left','OMV','ARF','COE paid (QP)','Minimum PARF benefit','Selected comps','Median asking','Median depreciation / yr','Expected sale price','Reconditioning / repairs','Other costs','Target gross profit','Maximum purchase price','Final offer','Projected gross profit','Exceptions / notes'];
     var row=[iso(S.asAt),s.make||null,s.model||null,s.reg,s.yearMfg,s.km,s.transfers,s.owners,s.coeExpiry,s.coeM!==null?ym(s.coeM):null,s.omv,s.arf,s.qp,s.parf,ev.n,ev.med,ev.depMed,v.resale,v.recon,v.other,v.profit,e.max,fo,fgp,exceptionsList(mk,e,v,true).map(plainText).join('; ')||null];
     return {headers:headers,row:row};
   }

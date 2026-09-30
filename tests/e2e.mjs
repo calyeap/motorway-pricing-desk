@@ -76,7 +76,7 @@ async function taycanSubject(p) {
   check('A: sample data has 3 exact Avantgarde → not thin', /3\s*exact variant, independent/i.test(await text(p, '#market')) && !/thin market/i.test(await text(p, '#market')));
   await p.check('#inc7'); await b.check('#inc7');
   check('A: ticking the short-COE row matches V0.6', (await text(p, '#sMed')) === (await text(b, '#sMed')), await text(p, '#sMed'));
-  check('A: desktop next CTA visible without scrolling', await inViewport(p, '#actNext') && (await text(p, '#actNext')).includes('Decision Summary'));
+  check('A: desktop next CTA visible without scrolling', await inViewport(p, '#actNext') && (await text(p, '#actNext')) === 'Decision →');
   await next(p);
   check('A: Decision shows same max', (await text(p, '#decBody .dmax .big')) === v06.max);
   await setVal(p, '#final', '96,000');
@@ -103,6 +103,7 @@ async function taycanSubject(p) {
   await p.screenshot({ path: out + 'v08-subject-1440.png', fullPage: true });
   await next(p);
   const band = await text(p, '#band');
+  check('B: band context: COE left stays the figure; expiry + COE paid (QP) as context; QP not on the OMV line', /COE LEFT\s*5y 6m/i.test(band) && /COE expires\s*28 Apr 2032/.test(band) && /COE paid \(QP\)\s*\$80,210/.test(band) && !/OMV[^\n]*QP/.test(band));
   check('B: band shows transfers as source + owners derived', band.includes('Porsche Taycan 4S 4+1') && /TRANSFERS\s*2/i.test(band) && band.includes('owners 3 (derived)'), band.replace(/\n/g, ' · ').slice(0, 200));
   await paste(p, TAYCAN);
   await p.waitForSelector('#stPool:not([hidden])');
@@ -171,8 +172,9 @@ async function taycanSubject(p) {
   check('D: import screen has one paste action only', (await p.locator('#stPaste .btn').count()) === 1 && (await text(p, '#pasteBtn')) === 'Paste SGCarMart results' && !(await p.content()).includes('pasteSaveBtn'));
   await paste(p, TAYCAN);
   await p.waitForSelector('#stPool:not([hidden])');
-  check('D: pool tab reads "Wider matches"', (await text(p, 'button[data-tab="plaus"]')).startsWith('Wider matches') && !(await text(p, '#stPool')).includes('Plausible'));
-  check('D: dealer-facing strip: parsed / active / sold / Motorway stock, no parser detail, no Needs/Ignored tabs at 0', /9 listings parsed/.test(await text(p, '#strip')) && /5\s*active/.test(await text(p, '#strip')) && /4\s*sold excluded/.test(await text(p, '#strip')) && /1\s*Motorway stock/.test(await text(p, '#strip')) && !/ignored|need review|page blocks/i.test(await text(p, '#strip')) && (await p.locator('#poolTabs .tab').count()) === 3 && !(await text(p, '#poolTabs')).includes('Ignored'));
+  check('D: Wider matches tab hidden when it adds nothing beyond the shortlist (Taycan); no "Plausible" wording', (await p.locator('button[data-tab="plaus"]').count()) === 0 && !(await text(p, '#stPool')).includes('Plausible') && (await p.locator('#poolTabs .tab').count()) === 2);
+  check('D: footer labels are destinations: ← Edit import · Comparison →', (await text(p, '#actBack')) === '← Edit import' && (await text(p, '#actNext')) === 'Comparison →');
+  check('D: dealer-facing strip: parsed / active / sold / Motorway stock, no parser detail, no Needs/Ignored tabs at 0', /9 listings parsed/.test(await text(p, '#strip')) && /5\s*active/.test(await text(p, '#strip')) && /4\s*sold excluded/.test(await text(p, '#strip')) && /1\s*Motorway stock/.test(await text(p, '#strip')) && !/ignored|need review|page blocks/i.test(await text(p, '#strip')) && (await p.locator('#poolTabs .tab').count()) === 2 && !(await text(p, '#poolTabs')).includes('Ignored'));
   check('D: actions read Update search · Market history (Add next page only when SGCarMart has more)', (await text(p, '#pasteAgain')) === 'Update search' && (await p.locator('#addPage').count()) === 0 && (await text(p, '#strip .hist summary')) === 'Market history');
   // Snapshot saving lives in the parsed-results strip: paste = appraise now, Save snapshot = track the market later.
   const dl = p.waitForEvent('download');
@@ -476,6 +478,19 @@ async function taycanSubject(p) {
   check('J: app bar New appraisal visible on desktop', await p.isVisible('#newAppr'));
   await Promise.all([p.waitForNavigation(), p.click('#newAppr')]);
   check('J: with no work entered, New appraisal simply restarts', await p.isVisible('#stSubject'));
+  await p.context().close();
+}
+
+// ---------------------------------------------------------------- G. No auto-scraping / backend (preceded by F2: Wider matches only when it adds listings)
+{
+  const p = await newPage();
+  await p.goto(base + 'motorway-pricing-desk.html');
+  await p.click('#subjDemo'); await next(p); await paste(p, E200); await p.waitForSelector('#stPool:not([hidden])');
+  const n = await p.evaluate(() => { const S = window.__mpd.state; return S.listings.filter(l => S.pool.tier[l.id] === 'plausible').length; });
+  check('F2: E200 page has listings beyond the shortlist → Wider matches tab shown with that count', n === 29 && (await text(p, 'button[data-tab="plaus"]')).startsWith('Wider matches') && (await p.locator('#poolTabs .tab').count()) === 3);
+  await p.click('button[data-tab="plaus"]');
+  check('F2: switching tabs keeps the results panel at least 60vh tall (no footer jump)', await p.evaluate(() => document.querySelector('#stPool .panel').getBoundingClientRect().height >= innerHeight * 0.6));
+  check('F2: desk footer reads ← Shortlist · Decision →', (await next(p), (await text(p, '#actBack')) === '← Shortlist' && (await text(p, '#actNext')) === 'Decision →'));
   await p.context().close();
 }
 

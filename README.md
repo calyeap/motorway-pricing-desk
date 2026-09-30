@@ -68,7 +68,7 @@ npm run e2e        # browser run: V0.6 regression, Taycan flow, E200 full loop, 
 
 **AI second opinion (not implemented; approved design, 30 Sep 2026).** One Claude call, structured JSON reply, rendered only inside the dashed Advisory block (`design/final-lock` A6 §06), behind an explicit button.
 
-- Outputs: suggested sale-price range (whenever comps exist); suggested opening-offer range (only once deal numbers exist); max 2–3 evidence-backed reasons.
+- Outputs, kept very compact — number + evidence TL;DR, not coaching: suggested sale-price range (whenever comps exist); suggested opening-offer range (only once deal numbers exist); at most 1–2 short evidence reasons; one line "advisory only · dealer decides". No numbered advice lists, no generic car-buying tips, no explaining the dealer's job back to him, no essays.
 - Hard rules, enforced by the desk not the model: advisory only; never called a valuation or a "safe price"; never changes Expected sale price, Target gross profit or any dealer input; never changes Maximum purchase price; opening-offer range must sit below Maximum purchase price or the block shows "No second opinion available"; never chooses Final offer.
 - Sent: comp rows (asking, dep/yr, km, owners, COE left, exact/related, posted-days), subject figures as deltas, deal numbers incl. the maximum as ceiling, Market Pulse read. Not sent: car identity, LTA fields, listing URLs, dealer names, seller free text, starting/final offer.
 - Needs a small key-holding proxy (the single-file app must never embed an API key) and an opt-in line stating what is sent. This would be the desk's only network request; test G changes to allow the proxy host only.
