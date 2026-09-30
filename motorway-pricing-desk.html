@@ -86,6 +86,7 @@ button,input,select{font:inherit;color:inherit}
 .band .sec b{color:#fff;font-weight:400}
 .band .na{color:var(--on-dark-muted)}
 .band .details{display:none}
+.band .fig .u .mo{display:none}
 
 /* Page frames */
 .page{max-width:760px;margin:0 auto;padding:48px 32px 40px}
@@ -253,6 +254,7 @@ table.led{border-collapse:collapse;width:100%}
 .ledger{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--rule);font-size:15px;max-width:560px}
 .ledger .k{color:var(--ink2)}
 .ledger .op{color:var(--na);margin-right:10px}
+.ledger>.num{white-space:nowrap;text-align:right}
 .dmax{background:var(--charcoal);color:#fff;padding:20px 24px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .dmax .big{font-family:var(--mont);font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin-top:6px}
 .dmax .w{font-size:12px;color:var(--on-dark-muted);text-align:right;line-height:1.5}
@@ -310,6 +312,7 @@ details.story .q b{font-weight:600;color:var(--ink2)}
 .exc{border:1px solid var(--amber-line);background:var(--amber-tint);padding:14px 18px}
 .exc .obs{font-size:14.5px}
 .noexc{color:var(--sage);font-size:15px}
+.actions-inline{margin-top:10px;display:flex;gap:12px;align-items:center}
 .summ{white-space:pre-wrap;font-family:var(--plex);font-size:13px;background:var(--sunk);border:1px solid var(--rule);padding:12px 14px;margin-top:10px;max-height:260px;overflow:auto}
 .tapck{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:-12px -12px -8px 0;background:none;border:0;padding:0;cursor:pointer}
 .tapck .ck{pointer-events:none}
@@ -386,6 +389,8 @@ details.story .q b{font-weight:600;color:var(--ink2)}
   .tldr .f span{display:none}
   .decide{grid-template-columns:1fr;gap:18px;padding:16px}
   .dmax .big,.dgp{font-size:32px}
+  .dec .dname{font-size:26px!important}
+  .band .fig .u .mo{display:inline}
   .obs.x{display:none}
   .more{display:inline}
   .adv ol.x{display:none}
@@ -1076,7 +1081,9 @@ var MPD = (function(){
     if(D.priceDown.length>D.priceUp.length)soft.push(D.priceDown.length+' seller'+(D.priceDown.length===1?'':'s')+' cut price, '+D.priceUp.length+' raised');
     if(D.priceUp.length>D.priceDown.length)firm.push(D.priceUp.length+' seller'+(D.priceUp.length===1?'':'s')+' raised price, '+D.priceDown.length+' cut');
     var read=soft.length&&firm.length?'Mixed evidence':soft.length?'Softer asking evidence':firm.length?'Firmer asking evidence':'No clear change';
-    return {read:read,why:why.concat(soft,firm).length?why.concat(soft,firm):['no price or listing changes in the captured results']};
+    if((D.added.length||D.noLongerListed.length)&&D.medianBefore!==D.medianAfter)why.push('median movement partly reflects which listings are captured, not only price changes');
+    var all=why.filter(function(w){return !/^median movement partly/.test(w)}).concat(soft,firm,why.filter(function(w){return /^median movement partly/.test(w)}));
+    return {read:read,why:all.length?all:['no price or listing changes in the captured results']};
   }
 
   return {MON:MON,parseDate:parseDate,dateOf:dateOf,fmtISO:fmtISO,monthsBetween:monthsBetween,addMonths:addMonths,ageYears:ageYears,toNum:toNum,median:median,today:today,
@@ -1234,7 +1241,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="model">'+esc(s.name)+'</div><div class="line">'+line.join(' · ')+'</div></div>'+
       '<div class="figs">'+
         fig('Mileage',s.km===null?'<span class="na">not entered</span>':kmF(s.km)+' <span class="u">km</span>')+
-        fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':s.transfers+(s.owners!==null?' <span class="u">owners '+s.owners+' (derived)</span>':''))+
+        fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':s.transfers+(s.owners!==null?' <span class="u"><span class="mo">transfers · </span>owners '+s.owners+' (derived)</span>':''))+
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
         '<div class="sec"><div>Registered <b class="num">'+(s.reg?M.fmtISO(s.reg):'<span class="na">n/s</span>')+'</b></div>'+
         '<div>OMV <b class="num">'+(s.omv!==null?money(s.omv):'<span class="na">n/s</span>')+'</b> · ARF <b class="num">'+(s.arf!==null?money(s.arf):'<span class="na">n/s</span>')+'</b></div>'+
@@ -1755,7 +1762,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     return '<div class="mc'+(on?'':' off')+'"><div class="mh"><div style="min-width:0">'+(l.status==='needs_input'?nameHtml(l):'<b>'+esc(l.variant||'Variant unclear')+'</b>')+'<div class="sub">Listing '+l.id+(l.sold?' · sold':'')+(l.dealer?' · '+esc(l.dealer):'')+'</div></div><span class="p num">'+(l.price===null?(l.sold?'<span class="na">Sold</span>':'<span class="na">n/s</span>'):money(l.price))+'</span>'+tog+'</div>'+
       notes+
       '<div class="g">'+
-      cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':(dd>0?'+':'')+kAbbr(dd,true),dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
+      cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':dd===0?'at median':(dd>0?'+':'')+kAbbr(dd,true),dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
       cell('Mileage',l.km===null?'n/s':kAbbr(l.km),l.km!==null&&s.km!==null?(l.km-s.km>0?'+':'')+kAbbr(l.km-s.km):'',l.km!==null&&s.km!==null&&Math.abs(l.km-s.km)>=20000)+
       cell('Owners',l.owners===null?'n/s':l.owners,l.owners!==null&&s.owners!==null?delta(l.owners-s.owners,'','same'):'',l.owners!==null&&s.owners!==null&&l.owners!==s.owners)+
       cell('COE',l.coeM===null?'n/s':ym(l.coeM),l.coeM!==null&&s.coeM!==null?delta(l.coeM-s.coeM,' mo','same'):'',l.renewed||(l.coeM!==null&&l.coeM<24))+
@@ -1825,7 +1832,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px"><span style="font-size:13.5px;color:var(--muted)">Median asking</span><span class="num mont" style="font-size:22px;font-weight:700" id="sMed">'+money(ev.med)+'</span></div>'+
         '<div class="kv"><span class="k">Lowest · highest</span><span class="n num"><span id="sLow">'+money(ev.low)+'</span> · <span id="sHigh">'+money(ev.high)+'</span></span></div>'+
         '<div class="kv" style="border-bottom:0"><span class="k">Median depreciation / yr</span><span class="n num" id="sDep">'+(ev.depMed===null?'<span class="na">Not stated</span>':money(ev.depMed))+'</span></div>'+
-        '<div class="split num"><div><b id="sExact">'+mk.exactIndependent+'</b><span class="x">exact variant, independent</span></div><div><b>'+mk.adjacent+'</b><span class="x">adjacent variant</span></div><div><b>'+mk.ownTicked+'</b><span class="x">Motorway stock ticked</span></div></div>'+
+        '<div class="split num"><div><b id="sExact"'+(mk.thin?' class="amb"':'')+'>'+mk.exactIndependent+'</b><span class="x">exact variant, independent</span></div><div><b>'+mk.adjacent+'</b><span class="x">adjacent variant</span></div><div><b>'+mk.ownTicked+'</b><span class="x">Motorway stock ticked</span></div></div>'+
         thinHtml(mk)+c;
     }
     if(e.max===null){$('maxAcq').textContent='—';$('working').textContent='Enter an expected resale price to see the maximum acquisition price.'}
@@ -1910,7 +1917,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div><div class="eyebrow">Median asking</div><div class="f num">'+money(ev.med)+'</div></div>'+
       '<div><div class="eyebrow">Median depreciation / yr</div><div class="f num">'+money(ev.depMed)+'</div></div></div>'+
       '<div class="num sub" style="margin-top:12px">'+(ev.n?'Asking range '+money(ev.low)+' – '+money(ev.high)+'. '+S.listings.length+' imported · '+mk.soldParsed+' sold · '+mk.ownParsed+' Motorway stock. Asking prices, not sale prices.':'No comparables with an asking price are ticked.')+'</div>'+
-      (mk.evidence.n?(mk.thin?'<div class="thin"><div class="eyebrow">Thin market / review</div><ul>'+mk.reasons.map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul></div>':''):'')+
+      (mk.evidence.n&&mk.thin?'<div class="thin"><div class="eyebrow">Thin market / review</div><ul>'+mk.reasons.slice(1).map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul></div>':'')+
       '<div id="decPulse" class="pulse" style="margin-top:14px" hidden></div></div></div>';
     // 04 Key differences (quiet facts)
     var obs=[];
@@ -1925,7 +1932,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     }
     var offL=desk.filter(function(l){return !S.inc[l.id]});
     if(offL.length)obs.push(['','Unticked, not counted: '+offL.map(function(l){return 'Listing '+l.id+' ('+(l.own?'Motorway stock':l.possibleSame?'possible same car':M.coeReason(l)||'dealer choice')+(l.price!==null?' · '+money(l.price):'')+')'}).join('; ')+'.']);
-    if(mk.soldParsed)obs.push(['',mk.soldParsed+' sold listing'+pl(mk.soldParsed,' was',' were')+' parsed from SGCarMart\'s listing status and kept out: sold listings show no asking price.']);
+    if(mk.soldParsed)obs.push(['',mk.soldParsed+' sold listing'+pl(mk.soldParsed,' was','s were')+' parsed from SGCarMart\'s listing status and kept out: sold listings show no asking price.']);
     h+='<div class="step"><div class="no">04<br>NOTES</div><div><h2>Key differences</h2>'+
       (obs.length?obs.map(function(o,i){return '<div class="obs'+(i>=2?' x':'')+'"><span class="dot '+o[0]+'"></span><span>'+o[1]+'</span></div>'}).join(''):'<div class="sub">Tick comparables on the Comparison desk to see differences.</div>')+
       (obs.length>2?'<button class="link more" type="button" data-more="1">'+(obs.length-2)+' more</button>':'')+'</div></div>';
@@ -1949,7 +1956,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div style="font-size:14px;font-weight:600;margin-top:14px">Owner makes the final decision.</div></div></div></div>';
     // 08 Owner summary
     h+='<div class="step"><div class="no">08<br>SHARE</div><div><h2>Owner summary</h2><div class="sub">Short, WhatsApp-friendly. Evidence and dealer maths only — not a valuation.</div>'+
-      '<div class="actions-inline" style="margin-top:10px;display:flex;gap:12px;align-items:center"><button class="btn secondary" type="button" id="copySum">Copy owner summary</button><span class="sub" id="copyMsg" role="status"></span></div>'+
+      '<div class="actions-inline"><button class="btn secondary" type="button" id="copySum">Copy owner summary</button><span class="sub" id="copyMsg" role="status"></span></div>'+
       '<div class="summ" id="sumText">'+esc(ownerSummary())+'</div></div></div>';
     var focus=document.activeElement&&document.activeElement.id==='final',pos=focus?document.activeElement.selectionStart:0;
     $('decBody').innerHTML=h;

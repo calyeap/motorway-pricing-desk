@@ -141,6 +141,7 @@ t.eq('diff: active captured count', [D.activeBefore, D.activeAfter], [5, 4]);
 t.ok('diff: median asking movement reported', D.medianBefore !== null && D.medianAfter !== null);
 const R = M.marketRead(D);
 t.ok('pulse: read is deterministic text with reasons', typeof R.read === 'string' && R.why.length > 0);
+t.ok('pulse: median movement caveated when the captured set changed', R.why.some(w => /which listings are captured/.test(w)));
 t.ok('pulse: never claims demand or transactions', !/demand|transaction|sales volume|sold/i.test(R.read + R.why.join(' ')));
 
 // Coverage mismatch: E200 page 1 of 180 → partial; absences must not be classified as removals

@@ -6,7 +6,10 @@ Single-file HTML pricing desk for used-car acquisition (dealer decision support)
 
 | Path | What | Status |
 |---|---|---|
-| `motorway-pricing-desk.html` | **V0.7 app.** Single file, open in a browser. No build step. | Current |
+| `motorway-pricing-desk.html` | **V0.8 app.** Single file, open in a browser. No build step. | Current |
+| `vendor/pdfjs-4.10.38/` | Pinned pdf.js (Apache-2.0), loaded before any CDN fallback | Vendored |
+| `fixtures/sgcm-taycan-4s-ctrl-a.txt` | Real SGCarMart Ctrl+A paste, Taycan 4S search (9 listings: 5 active, 4 sold, 1 Motor-Way) | Frozen acceptance fixture |
+| `fixtures/lta-layout-fake-pii.pdf` | Privacy regression fixture: dense layout with obviously fake personal data next to vehicle fields | Frozen; regenerate with `node tests/make-lta-fake-pii-fixture.mjs` |
 | `fixtures/lta-taycan-4s-synthetic.pdf` | **Synthetic, sanitised** stand-in for an LTA Vehicle Registration Details PDF (Porsche Taycan 4S 4+1). Only the 11 appraisal values Calvin supplied; no personal fields at all. Regenerate with `npm run fixture:lta`. | Frozen acceptance fixture |
 | `tests/` | `run.mjs` unit + fixture tests; `e2e.mjs` browser run (Playwright) with screenshots to `test-output/`. | |
 | `baseline/v0.6/` | V0.6 prototype + screenshots | **Frozen rollback baseline** (tag `v0.6-baseline`). Never edit. |
@@ -42,6 +45,18 @@ Never commit a real customer document. Real LTA PDFs contain PII. Use synthetic 
 
 ```
 npm install        # pdfjs-dist, for reading the PDF fixture in Node
-npm test           # parsers + maths against the real SGCarMart paste and the synthetic LTA PDF
+npm test           # V0.7 regression + V0.8 core tests (both SGCarMart fixtures, LTA PDFs, snapshots/diff)
 npm run e2e        # browser run: V0.6 regression, Taycan flow, E200 full loop, 390 px
 ```
+
+## V0.8 (bounded hardening pass)
+
+- **Own stock:** Motor-Way / Motorway dealer names → "Motorway stock", unticked, never independent evidence. "Possible same car" when registration date, exact variant, COE left and owner count match this car.
+- **Thin market:** evidence is split into exact-variant independent active / adjacent variant / Motorway stock / sold. Fewer than 3 exact independent comps → **THIN MARKET / REVIEW** with reasons.
+- **Variants:** exact / adjacent / different body style. Seat layouts like `4+1` ignored. No scores.
+- **Source vs derived:** transfers are source truth; owners are labelled "(derived)"; original/renewed COE is labelled "(inferred)".
+- **Blank costs:** V0.6 maths unchanged, but the maximum is marked provisional with an amber warning on the rail and the Decision Summary.
+- **Privacy:** first cell only, typed and allowlisted values, free text never read from the next line; pdf.js served from `vendor/`.
+- **Flow:** sticky Back / Continue on every stage; final offer (owner) is separate from the starting offer (dealer); exceptions-only filter; "Why this comp?"; owner summary replaces the external-AI brief.
+- **Market Pulse (manual):** "Paste & save today" downloads a snapshot JSON (market data only, no subject car). "Compare with a saved snapshot" diffs by a price-free identity (title + registration + dealer, mileage as check). Absent = *no longer listed*; only SGCarMart's own status = *sold*. Partial or different coverage → loud warning, absences not classified.
+- **No auto-scraping, no backend, no storage:** the app makes no network requests for data; a test enforces it.
