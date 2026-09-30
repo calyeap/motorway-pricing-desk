@@ -84,7 +84,8 @@ eq('sgcm: conflicting title lines → needs_input with both candidates', [C.stat
 const E200 = { make: 'Mercedes-Benz', model: 'E200 Avantgarde', reg: '2020-03-18', km: 72000, owners: 2, coeM: 41, renewed: false };
 const pool = M.buildPool(E200, L);
 const shortL = pool.shortlist.map(id => L.find(l => l.id === id));
-ok('pool: shortlist has 1–10 rows', shortL.length >= 1 && shortL.length <= 10, `${shortL.length}`);
+ok('pool: shortlist has 1–10 market rows plus Motorway-stock context rows', shortL.filter(l => !l.own).length >= 1 && shortL.filter(l => !l.own).length <= 10, `${shortL.length}`);
+ok('pool: Motorway stock in the shortlist is context only (never ticked by default)', shortL.filter(l => l.own).every(l => !M.defaultInclude(l)));
 ok('pool: no sold listing in the shortlist', shortL.every(l => !l.sold));
 ok('pool: no sold listing is plausible either', L.filter(l => l.sold).every(l => pool.tier[l.id] === 'aside'));
 ok('pool: CLE200 is set aside as a different model', L.filter(l => /CLE200/.test(l.title)).every(l => pool.tier[l.id] === 'aside' && pool.reason[l.id] === 'Different model'));
@@ -110,7 +111,7 @@ eq('v0.6: default ticks = listings 1–6', ticked.map(l => l.id), [1, 2, 3, 4, 5
 eq('v0.6: evidence (n, low, median, high, median dep)', [ev.n, ev.low, ev.med, ev.high, ev.depMed], [6, 106800, 114150, 138800, 25635]);
 const econ = M.economics({ resale: 112000, recon: 3500, other: 1500, profit: 8000, offer: 95000 });
 eq('v0.6: max acquisition + projected GP', [econ.max, econ.gp], [99000, 12000]);
-eq('v0.6: blanks count as $0 and are listed', M.economics({ resale: 112000, recon: null, other: 1500, profit: null, offer: null }), { max: 110500, gp: null, r0: 0, o0: 1500, p0: 0, blanks: ['reconditioning', 'target profit'] });
+eq('v0.6: blanks count as $0 and are listed', M.economics({ resale: 112000, recon: null, other: 1500, profit: null, offer: null }), { max: 110500, gp: null, r0: 0, o0: 1500, p0: 0, blanks: ['reconditioning', 'target profit'], provisional: true });
 eq('v0.6: no resale → no max', M.economics({ resale: null, recon: 1, other: 1, profit: 1, offer: 1 }).max, null);
 eq('evidence: unpriced (sold) rows are excluded from figures', M.evidence([...ticked, { price: null, dep: null, renewed: false, coeM: null }]).noPrice, 1);
 const dpool = M.buildPool(E200, DEMO);

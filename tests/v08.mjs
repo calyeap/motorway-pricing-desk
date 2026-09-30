@@ -1,0 +1,163 @@
+// V0.8 acceptance tests (core only; browser flow is in e2e.mjs). node tests/v08.mjs
+import { loadCore, suite, fixture, pdfLines, AS_AT } from './lib.mjs';
+
+const M = loadCore();
+const t = suite();
+const byId = (L, id) => L.find(l => l.id === id);
+const TAYCAN = { make: 'Porsche', model: 'Taycan 4S 4+1', reg: '2022-04-29', km: 35000, owners: 3, transfers: 2, coeM: 66, renewed: false };
+const E200 = { make: 'Mercedes-Benz', model: 'E200 Avantgarde', reg: '2020-03-18', km: 72000, owners: 2, coeM: 41, renewed: false };
+
+// ================================================================ G. Taycan fixture
+const tx = fixture('sgcm-taycan-4s-ctrl-a.txt');
+const TP = M.parseSgcm(tx, { asAt: AS_AT });
+const TL = TP.listings;
+t.eq('taycan: 9 listings detected (header says 9)', [TL.length, TP.header.total], [9, 9]);
+t.eq('taycan: explicit sold = listings 6–9, active = 1–5', [TL.filter(l => l.sold).map(l => l.id), TL.filter(l => !l.sold).map(l => l.id)], [[6, 7, 8, 9], [1, 2, 3, 4, 5]]);
+t.ok('taycan: Voxy star ad and "Suggested For You" are not listings', !TL.some(l => /Voxy|A180|XPENG/.test(l.title)));
+t.eq('taycan: listing 5 read exactly', (l => [l.price, l.dep, l.reg, l.km, l.owners, l.coeM, l.dealer])(byId(TL, 5)), [342000, 44900, '2022-04-29', 29999, 3, 66, 'Motor-Way Credit Pte Ltd']);
+
+// ================================================================ A1. Own inventory
+t.eq('own: only the Motor-Way listing is Motorway stock', TL.filter(l => l.own).map(l => l.id), [5]);
+t.ok('own: dealer-name variants match', ['Motor-Way Credit Pte Ltd', 'Motorway Pte Ltd', 'MOTOR WAY CREDIT', 'motor-way'].every(d => M.isOwnStock(d)));
+t.ok('own: non-Motorway dealers do not match', ['1 Auto Cars Pte Ltd', 'Car Craft Pte Ltd', 'Highway Motors', null, ''].every(d => !M.isOwnStock(d)));
+const EP = M.parseSgcm(fixture('sgcm-e200-avantgarde-ctrl-a.txt'), { asAt: AS_AT });
+const EL = EP.listings;
+t.ok('own: E200 Motor-Way listing detected', EL.some(l => l.own && /motor-?way/i.test(l.dealer)));
+
+// ================================================================ A3. Variant classes
+t.eq('variant: seat configuration 4+1 is dropped from variant words', M.familyKey({ make: 'PORSCHE', model: 'TAYCAN 4S 4+1' }).variant, ['4s']);
+const TPool = M.buildPool(TAYCAN, TL);
+t.eq('variant: classes on Taycan (exact / adjacent / different)', [1, 2, 3, 4, 5].map(id => byId(TL, id).vclass), ['adjacent', 'adjacent', 'different', 'adjacent', 'exact']);
+t.eq('variant: adjacent reason names the extra spec', byId(TL, 1).vlabel, 'Adjacent variant — Performance Battery Plus');
+t.eq('variant: Sunroof alone is adjacent, not equal', M.variantClass('Porsche Taycan Electric 4S Sunroof', M.familyKey(TAYCAN)).cls, 'adjacent');
+t.eq('variant: Cross Turismo is a different body style', byId(TL, 3).vlabel, 'Different body style — Cross Turismo');
+t.ok('variant: GTS and Turbo are not exact for a 4S', ['Porsche Taycan GTS', 'Porsche Taycan Turbo S', 'Porsche Taycan Turbo'].every(x => M.variantClass(x, M.familyKey(TAYCAN)).cls !== 'exact'));
+t.eq('variant: Cross Turismo set aside with reason', [TPool.tier[3], TPool.reason[3]], ['aside', 'Different body style — Cross Turismo']);
+t.eq('variant: E200 "Avantgarde" exact, Mild Hybrid / Sunroof adjacent', ['Mercedes-Benz E-Class E200 Avantgarde', 'Mercedes-Benz E-Class E200 Mild Hybrid Avantgarde', 'Mercedes-Benz E-Class E200 Avantgarde Sunroof'].map(x => M.variantClass(x, M.familyKey(E200)).cls), ['exact', 'adjacent', 'adjacent']);
+
+// ================================================================ A1. Possible same car + default ticks
+t.eq('same car: listing 5 flagged as possible same car', TL.filter(l => l.possibleSame).map(l => l.id), [5]);
+t.ok('own: Motorway stock is visible in the shortlist for context', TPool.tier[5] === 'short');
+t.eq('own: Motorway stock unticked by default', M.defaultInclude(byId(TL, 5)), false);
+t.ok('sold: never ticked by default', TL.filter(l => l.sold).every(l => !M.defaultInclude(l)));
+t.ok('sold: never shortlisted', TL.filter(l => l.sold).every(l => TPool.tier[l.id] === 'aside'));
+
+// ================================================================ A2. Thin market
+const tick = TPool.shortlist.map(id => byId(TL, id)).filter(l => M.defaultInclude(l));
+const mk = M.market(tick, TL);
+t.eq('thin: default ticks = the 3 adjacent PB+ listings', tick.map(l => l.id).sort(), [1, 2, 4]);
+t.eq('thin: evidence split', [mk.exactIndependent, mk.adjacent, mk.ownTicked, mk.ownParsed, mk.soldParsed], [0, 3, 0, 1, 4]);
+t.ok('thin: THIN MARKET flagged despite 3 comps', mk.thin === true);
+t.ok('thin: reasons are visible and specific', mk.reasons.some(r => /0 exact-variant independent active/.test(r)) && mk.reasons.some(r => /adjacent/.test(r)) && mk.reasons.some(r => /Motorway stock/.test(r)));
+const withOwn = M.market([...tick, byId(TL, 5)], TL);
+t.ok('own: ticking Motorway stock never counts as independent', withOwn.exactIndependent === 0 && withOwn.ownTicked === 1);
+t.ok('own: excluded from independent median by default', M.evidence(tick).med === 378800 && !tick.includes(byId(TL, 5)));
+t.ok('sold: sold rows excluded from active evidence', M.market([...tick, byId(TL, 7)], TL).evidence.n === 3);
+
+// V0.6 sample: 3 exact Avantgarde → not thin; maths unchanged
+const DEMO = [
+  ['E200 Avantgarde', 106800, 25060, '2019-12-12', 78000, 2, 38], ['E200 Exclusive', 113800, 25830, '2020-02-28', 61000, 1, 40],
+  ['E200 AMG Line', 137800, 28890, '2020-07-15', 52000, 1, 45], ['E200 Avantgarde', 107500, 22400, '2020-05-09', 96000, 3, 43],
+  ['E200 Avantgarde', 114500, 25440, '2020-03-20', 70000, 2, 41], ['E200 AMG Line', 138800, 26710, '2020-11-06', 44000, 1, 49],
+].map(([v, price, dep, reg, km, owners, coeM], i) => ({ id: i + 1, title: 'Mercedes-Benz E-Class ' + v, price, dep, reg, km, owners, coeM, renewed: false, sold: false, status: 'ok', dealer: null }));
+M.buildPool(E200, DEMO);
+const dm = M.market(DEMO, DEMO);
+t.eq('v0.6 sample: 3 exact Avantgarde, 3 adjacent, not thin, median unchanged', [dm.exactIndependent, dm.adjacent, dm.thin, dm.evidence.med], [3, 3, false, 114150]);
+
+// ================================================================ A4/A5. Owners derived, COE inferred
+const subj = M.subjectFrom({ make: M.F('PORSCHE', 's', 'exact'), model: M.F('TAYCAN 4S 4+1', 's', 'exact'), transfers: M.F(2, 's', 'exact'), regDate: M.F('2022-04-29', 's', 'exact'), coeExpiry: M.F('2032-04-28', 's', 'exact') }, 35000, AS_AT);
+t.eq('owners: transfers stay source truth, owners marked derived', [subj.transfers, subj.owners, subj.ownersDerived], [2, 3, true]);
+t.eq('coe: original status marked inferred', [subj.renewed, subj.coeStatusInferred], [false, true]);
+
+// ================================================================ A6. Blank economics
+const e1 = M.economics({ resale: 350000, recon: null, other: null, profit: null, offer: null });
+t.eq('blank costs: maths unchanged (blank = $0) but flagged provisional', [e1.max, e1.provisional, e1.blanks.length], [350000, true, 3]);
+t.eq('blank costs: explicit zeros are not provisional', M.economics({ resale: 350000, recon: 0, other: 0, profit: 0, offer: null }).provisional, false);
+t.eq('maths: V0.6 figures unchanged', (e => [e.max, e.gp])(M.economics({ resale: 112000, recon: 3500, other: 1500, profit: 8000, offer: 95000 })), [99000, 12000]);
+
+// ================================================================ A7. LTA privacy hardening (fake PII only)
+const bleed = [
+  "Vehicle Model  TAYCAN 4S 4+1  Registered Owner's Name  JOHN DOE",
+  'Colour  WHITE  Salutation  MR JOHN DOE',
+  'Vehicle Make',
+  'JOHN DOE',
+  'Propellant\tElectric JOHN',
+];
+const B = M.parseLta(bleed);
+t.eq('privacy: first cell only for model', B.fields.model.value, 'TAYCAN 4S 4+1');
+t.eq('privacy: colour stops before neighbouring label', B.fields.colour.value, 'WHITE');
+t.eq('privacy: text value never taken from the next line', B.fields.make.value, null);
+t.eq('privacy: propellant must be a known propellant', B.fields.propellant.value, null);
+t.ok('privacy: no fake PII anywhere in parser output', !/JOHN|DOE|\bMR\b/.test(JSON.stringify(B)));
+t.eq('privacy: make must be a known make', M.parseLta(['Vehicle Make\tJOHN DOE']).fields.make.value, null);
+
+const FL = M.parseLta(await pdfLines(M, 'lta-layout-fake-pii.pdf'));
+t.eq('privacy pdf: vehicle fields read from dense layout', ['make', 'model', 'colour', 'propellant', 'regDate', 'coeExpiry', 'transfers', 'omv', 'arf', 'roadTaxExpiry'].map(k => FL.fields[k].value),
+  ['PORSCHE', 'TAYCAN 4S 4+1', 'WHITE', 'Electric', '2022-04-29', '2032-04-28', 2, 136610, 182898, '2027-04-28']);
+const FJ = JSON.stringify(FL);
+t.ok('privacy pdf: no fake personal value leaks into output', !['JOHN', 'DOE', 'S0000000A', 'FAKE', 'JANE', 'ROE', '1980', 'SXX1234Z', 'WP0ZZZ', '1234567890', '9000'].some(s => FJ.includes(s)), FJ.match(/JOHN|DOE|S0000000A|FAKE|JANE|ROE|1980|SXX1234Z|WP0ZZZ|1234567890|9000/)?.[0] || '');
+t.ok('privacy: parser result carries no raw lines', !('lines' in FL) && !('raw' in FL));
+
+// Synthetic Taycan acceptance PDF still reads all 11 values
+const SR = M.parseLta(await pdfLines(M, 'lta-taycan-4s-synthetic.pdf'));
+t.eq('lta pdf: Taycan synthetic values unchanged', ['make', 'model', 'yearMfg', 'regDate', 'transfers', 'propellant', 'omv', 'arf', 'coeExpiry', 'qp', 'parf'].map(k => SR.fields[k].value),
+  ['PORSCHE', 'TAYCAN 4S 4+1', 2021, '2022-04-29', 2, 'Electric', 136610, 182898, '2032-04-28', 80210, 91449]);
+
+// ================================================================ 13. Road tax (optional, display only)
+t.eq('road tax: expiry parsed when present', M.parseLta(['Road Tax Expiry Date\t28 Apr 2027']).fields.roadTaxExpiry.value, '2027-04-28');
+
+// ================================================================ D. Car story (source-backed, verbatim)
+const st = M.carStory(byId(TL, 5));
+t.ok('story: warranty mention quoted from source', st.mentions.some(m => m.tag === 'mentions warranty' && /Warranty/i.test(m.quote)));
+t.ok('story: labels say "mentions", never "has"', st.mentions.every(m => /^mentions /.test(m.tag)));
+t.ok('story: import used shown as a source fact', M.carStory(byId(TL, 9)).facts.includes('Import Used'));
+t.eq('story: original registration quoted for import used', M.carStory(byId(TL, 9)).importOrigReg, '2021-09-30');
+
+// ================================================================ F. Snapshots, identity, diff, Market Pulse
+const snap = M.snapshotFrom(TP, { savedAt: '2026-09-30T09:00:00.000Z', asAt: AS_AT });
+t.eq('snapshot: metadata', [snap.kind, snap.search, snap.sgcmTotal, snap.captured, snap.sort], ['mpd-market-snapshot', 'porsche taycan 4s', 9, 9, 'Any Status, Date Posted (Newest)']);
+const SJ = JSON.stringify(snap);
+t.ok('snapshot: holds no subject / LTA data', !/subject|lta|omv|arf|transfers|35000|coeExpiry/i.test(SJ));
+t.ok('snapshot: identity never includes price', snap.listings.every(l => !String(l.key).includes('342') && !String(l.key).includes('378')));
+t.eq('snapshot: identity stable across a price change', M.identity({ ...byId(TL, 1), price: 1 }), M.identity(byId(TL, 1)));
+
+// Build a "today" paste from the fixture: listing 1 −$10k, listing 4 +$5k, listing 2 gone, one new listing, listing 5 now sold.
+let today = tx.replace('$378,800', '$368,800').replace('$356,888', '$361,888');
+today = today.replace(/Porsche Taycan Electric 4S Performance Battery Plus\r?\nPorsche Taycan Electric 4S Performance Battery Plus\r?\n\$458,000[\s\S]*?Compare\r?\n/, '');
+today = today.replace('Compare\r\nPorsche Taycan Cross Turismo Electric 4S Sunroof', 'Compare\r\nPorsche Taycan Electric 4S\r\nPorsche Taycan Electric 4S\r\n$329,800\r\nInstl. $4,000 /mth\r\n$43,000 /yr\r\n15-Jun-2022\r\n\r\n(5y 8m COE left)\r\n\r\n41,000 km\r\n-\r\n2 Owners\r\nshortlist\r\nFuel Type: Electric\r\nNew listing.\r\nPosted 30-Sep-2026\r\n\r\nCompare\r\nPorsche Taycan Cross Turismo Electric 4S Sunroof');
+today = today.replace('Porsche Taycan Electric 4S\r\nPremium Ad\r\nPorsche Taycan Electric 4S\r\n$342,000', 'soldPorsche Taycan Electric 4S\r\nPremium Ad\r\nPorsche Taycan Electric 4S\r\nsold\r\nView Similar');
+const TP2 = M.parseSgcm(today, { asAt: AS_AT });
+t.eq('diff setup: today paste parsed', [TP2.listings.length, TP2.listings.filter(l => l.sold).length], [9, 5]);
+const snap2 = M.snapshotFrom(TP2, { savedAt: '2026-10-07T09:00:00.000Z', asAt: AS_AT });
+const D = M.diffSnapshots(snap, snap2);
+t.ok('diff: comparable (same search, sort, full coverage)', D.comparable === true, D.warnings.join('; '));
+t.eq('diff: price decrease', D.priceDown.map(x => x.cur.price), [368800]);
+t.eq('diff: price increase', D.priceUp.map(x => x.cur.price), [361888]);
+t.eq('diff: new listing', D.added.map(x => x.price), [329800]);
+t.eq('diff: removed listing is NO LONGER LISTED, not sold', [D.noLongerListed.map(x => x.price), D.noLongerListed.every(x => !x.sold)], [[458000], true]);
+t.eq('diff: explicit sold status only → sold', D.nowSold.map(x => x.cur.title), ['Porsche Taycan Electric 4S']);
+t.ok('diff: sold count never includes disappeared listings', D.nowSold.length === 1);
+t.eq('diff: active captured count', [D.activeBefore, D.activeAfter], [5, 4]);
+t.ok('diff: median asking movement reported', D.medianBefore !== null && D.medianAfter !== null);
+const R = M.marketRead(D);
+t.ok('pulse: read is deterministic text with reasons', typeof R.read === 'string' && R.why.length > 0);
+t.ok('pulse: never claims demand or transactions', !/demand|transaction|sales volume|sold/i.test(R.read + R.why.join(' ')));
+
+// Coverage mismatch: E200 page 1 of 180 → partial; absences must not be classified as removals
+const eSnapA = M.snapshotFrom(EP, { savedAt: '2026-09-30T09:00:00.000Z', asAt: AS_AT });
+const cut = { ...eSnapA, listings: eSnapA.listings.slice(5), captured: eSnapA.captured - 5 };
+const DE = M.diffSnapshots(eSnapA, cut);
+t.ok('coverage: partial capture → not comparable, loud warning', DE.comparable === false && DE.warnings.some(w => /coverage/i.test(w)));
+t.eq('coverage: absences are "not in this capture", not "no longer listed"', [DE.noLongerListed.length, DE.notCaptured.length], [0, 5]);
+t.ok('coverage: different search term warns', M.diffSnapshots(snap, eSnapA).warnings.some(w => /search/i.test(w)));
+t.eq('pulse: not comparable → read says so', M.marketRead(DE).read, 'Not comparable — capture coverage differs');
+
+// Ambiguous identity → match needs review, never guessed
+const twin = { ...snap, listings: [...snap.listings, { ...snap.listings[0] }], captured: 10, sgcmTotal: 10 };
+const DA = M.diffSnapshots(twin, snap);
+t.ok('identity: duplicate keys → "match needs review"', DA.needsReview.length >= 1);
+
+// Own stock kept out of market pulse medians
+t.ok('pulse: Motorway stock excluded from pulse medians', D.ownExcluded >= 1);
+
+process.exit(t.done() ? 1 : 0);
