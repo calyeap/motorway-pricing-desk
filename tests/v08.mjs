@@ -222,4 +222,47 @@ t.eq('links: snapshot keeps each listing URL', snapK.listings.map(l => l.url), T
 t.ok('links: snapshot identity unchanged (no URL, no price)', snapK.listings.every(l => l.key === M.identity(l) && !/sgcarmart|info\//.test(l.key)));
 t.ok('links: snapshot without URLs still loads (url null)', JSON.parse(JSON.stringify(snap)).listings.every(l => l.url === null || l.url === undefined));
 
+// ================================================================ J. Real LTA layout (openhtmltopdf): values below labels, combined MAKE/MODEL
+// Shape taken from the sanitised diagnostic of Vendi's document: values one or two lines under their label, no Make field,
+// model as "PORSCHE/TAYCAN 4S", two-column rows, personal labels nearby. Fake personal values only.
+const REAL = [
+  'Vehicle Registration Details',
+  'Vehicle Model', 'Vehicle particulars', 'PORSCHE/TAYCAN 4S',            // value two lines below, filler line between
+  'Vehicle No.\tOwner Name', 'SXX1234Z\tJOHN DOE',                          // personal labels + values
+  'Propellant', 'Electric',                                                 // one line below
+  'Original Registration Date\tNo. of Transfers', '29 Apr 2022\t2',        // two columns, values below in the same columns
+  'Year of Manufacture', '2021',
+  'Primary Colour', 'Grey',
+  'Open Market Value', 'as at first registration', '$136,610.00',          // two lines below
+  'Actual ARF Paid', '$182,898.00',
+  'COE Expiry Date', '28 Apr 2032 11:59 PM',                               // not a plain date → stays missing
+  'COE Category', 'Category B (Cars above 1600cc or 130bhp)',              // descriptive row → stays missing
+  'QP Paid', '', '$80,210.00',
+  'PARF Eligibility', 'Yes',
+  'Minimum PARF Benefit', '$91,449.00',
+  'Registered Address', '1 FAKE STREET #01-01', 'Singapore 123456',
+];
+const RJ = M.parseLta(REAL);
+const rv = (k) => RJ.fields[k].value;
+t.eq('real layout: fields expected from this document all parse', ['omv', 'arf', 'qp', 'parf', 'parfElig', 'transfers', 'regDate', 'yearMfg', 'propellant', 'colour'].map(rv), [136610, 182898, 80210, 91449, 'Yes', 2, '2022-04-29', 2021, 'Electric', 'Grey']);
+t.eq('real layout: combined PORSCHE/TAYCAN 4S → Make derived, Model split', [rv('make'), RJ.fields.make.status, rv('model'), RJ.fields.model.status], ['PORSCHE', 'derived', 'TAYCAN 4S', 'exact']);
+t.ok('real layout: derived make carries its provenance', /derived from Vehicle Model: PORSCHE\/TAYCAN 4S/.test(RJ.fields.make.source));
+t.eq('real layout: subject reads Porsche · Taycan 4S', (s => [s.make, s.model, s.name])(M.subjectFrom(RJ.fields, 35000, AS_AT)), ['Porsche', 'Taycan 4S', 'Porsche Taycan 4S']);
+t.eq('real layout: COE expiry with a time suffix and a descriptive COE category stay missing (not guessed)', [rv('coeExpiry'), rv('coeCat'), RJ.fields.coeExpiry.status, RJ.fields.coeCat.status], [null, null, 'missing', 'missing']);
+t.eq('real layout: road tax absent → missing, not on document', [rv('roadTaxExpiry'), RJ.fields.roadTaxExpiry.source], [null, 'not on document']);
+t.eq('real layout: 12 of 15 fields found (COE expiry, COE category, road tax left missing)', RJ.found, 12);
+t.ok('real layout: no fake personal value anywhere in the parser output', !/JOHN|DOE|SXX1234Z|FAKE STREET|123456/.test(JSON.stringify(RJ)));
+t.ok('real layout: no raw lines persisted', !('lines' in RJ) && !('raw' in RJ) && !JSON.stringify(RJ).includes('Vehicle particulars'));
+// Same-line values still win, and lookahead never crosses a personal / boundary label.
+t.eq('same line: label: value and label<tab>value unchanged', [M.parseLta(['Propellant: Electric']).fields.propellant.value, M.parseLta(['Open Market Value\t$1,000.00', '$2,000.00']).fields.omv.value], ['Electric', 1000]);
+t.eq('one below / two below', [M.parseLta(['Actual ARF Paid', '$5.00']).fields.arf.value, M.parseLta(['Actual ARF Paid', 'note', '$5.00']).fields.arf.value], [5, 5]);
+t.eq('three below is too far', M.parseLta(['Actual ARF Paid', 'a', 'b', '$5.00']).fields.arf.value, null);
+t.eq('boundary: a personal label between label and value stops the lookahead', [M.parseLta(['Vehicle Model', 'Owner Name', 'PORSCHE/TAYCAN 4S']).fields.model.value, M.parseLta(['Open Market Value', 'Chassis No.', '$136,610.00']).fields.omv.value], [null, null]);
+t.eq('boundary: another field\'s label in the same column stops the lookahead (no cross-field capture)', M.parseLta(['Open Market Value', 'Actual ARF Paid', '$182,898.00']).fields.omv.value, null);
+t.eq('columns: a label row in a different column is skipped, value read from own column', M.parseLta(['Open Market Value\tActual ARF Paid', '\t$182,898.00', '$136,610.00\t']).fields.omv.value, 136610);
+t.eq('invalid nearby candidate stays missing', [M.parseLta(['No. of Transfers', 'two']).fields.transfers.value, M.parseLta(['COE Expiry Date', '28/04/2032 23:59']).fields.coeExpiry.value], [null, null]);
+t.eq('free text below a label is taken only when led by a known make', [M.parseLta(['Vehicle Model', 'JOHN DOE']).fields.model.value, M.parseLta(['Vehicle Model', 'NOTAMAKE/THING']).fields.model.value, M.parseLta(['Vehicle Model', 'MERCEDES-BENZ/E200 AVANTGARDE']).fields.model.value], [null, null, 'E200 AVANTGARDE']);
+t.eq('make split only from a real make; otherwise model kept whole and make missing', (f => [f.make.value, f.model.value])(M.parseLta(['Vehicle Model\tNOTAMAKE/THING']).fields), [null, 'NOTAMAKE/THING']);
+t.eq('make field present on the document wins over derivation', (f => [f.make.value, f.make.status, f.model.value])(M.parseLta(['Vehicle Make\tPORSCHE', 'Vehicle Model\tTAYCAN 4S']).fields), ['PORSCHE', 'exact', 'TAYCAN 4S']);
+
 process.exit(t.done() ? 1 : 0);

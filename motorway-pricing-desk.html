@@ -839,6 +839,12 @@ var MPD = (function(){
   var MAKES=['abarth','aion','alfa romeo','alpine','aston martin','audi','austin','bentley','bmw','byd','cadillac','chery','chevrolet','chrysler','citroen','cupra','daihatsu','daimler','denza','dodge','dongfeng','ds','ferrari','fiat','ford','foton','gac','genesis','golden dragon','great wall','gwm','hino','honda','hongqi','hummer','hyundai','infiniti','isuzu','iveco','jaguar','jeep','kgm','kia','king long','lamborghini','land rover','leapmotor','lexus','lincoln','lotus','man','maserati','maxus','mazda','mclaren','mercedes-benz','mercedes benz','mg','mini','mitsubishi','mitsuoka','morgan','neta','nissan','opel','ora','perodua','peugeot','polestar','porsche','proton','ram','renault','rolls-royce','rolls royce','rover','scania','seat','skoda','smart','ssangyong','subaru','suzuki','tesla','toyota','volkswagen','volvo','xpeng','yutong','zeekr'];
   var COLOUR_WORDS=/^(white|black|grey|gray|silver|red|blue|green|yellow|orange|brown|beige|gold|golden|purple|violet|pink|maroon|bronze|champagne|cream|ivory|navy|teal|turquoise|dark|light|metallic|pearl|matt|matte|multi|multicolour|two-tone|and|&|\/)$/i;
   var PII_RX=/\b[STFGM]\d{7}[A-Z]\b|@|\b\d{6}\b(?!\s*km)/i; // NRIC/FIN, email, 6-digit postal code
+  // "MAKE/MODEL" in one cell → {make, model}; null unless the part before the slash is a known make.
+  function splitMakeModel(s){
+    var m=String(s||'').match(/^([A-Za-z][A-Za-z .\-]*?)\s*\/\s*(\S.*)$/);
+    if(!m||MAKES.indexOf(m[1].trim().toLowerCase())<0)return null;
+    return {make:m[1].trim(),model:m[2].trim()};
+  }
   function isB(ch){return ch===undefined||/[\s:\t|]/.test(ch)}
   function findLabels(line){
     var lo=line.toLowerCase(),out=[],i=0;
@@ -869,7 +875,10 @@ var MPD = (function(){
   function parseLta(lines,opt){
     opt=opt||{};
     var got={},skipped=0,used={};
-    lines=lines.map(function(s){return String(s).replace(/[ \u00a0]{2,}/g,'\t').replace(/\u00a0/g,' ').trim()});
+    // Keep leading tabs: they mark an empty left column, and column position decides which label a value belongs to.
+    lines=lines.map(function(s){return String(s).replace(/[ \u00a0]{2,}/g,'\t').replace(/\u00a0/g,' ').replace(/^ +/,'').replace(/[ \t]+$/,'')});
+    // Column of a character offset within a line (cells are tab-separated).
+    var colOf=function(str,i){return (str.slice(0,i).match(/\t/g)||[]).length};
     lines.forEach(function(line,li){
       if(used[li])return;
       var hits=findLabels(line);
@@ -878,12 +887,24 @@ var MPD = (function(){
         var def=LTA_FIELDS.filter(function(f){return f.k===h.k})[0];
         var endAt=hi+1<hits.length?hits[hi+1].i:line.length;
         var cell=line.slice(h.end,endAt).replace(/^[\s:|]+/,'').split(/\t|\|/)[0].trim();
-        // Label above value: only for strictly typed fields (dates, money, numbers), never free text.
-        if(!cell&&hi===hits.length-1&&li+1<lines.length&&!findLabels(lines[li+1]).length&&/^(date|money|int|year)$/.test(def.type)){
-          cell=lines[li+1].split('\t')[0].trim();used[li+1]=true;
+        var v=typed(def.type,cell),raw=cell;
+        // Value below the label (current LTA layout): look at most two lines down, in the label's own column.
+        // Stop at any personal / boundary label. Skip another field's label row only when that row has no label
+        // in this column. Accept only what this field's own type check accepts; free text only when it is led by a known make.
+        if(v===null){
+          var col=colOf(line,h.i);
+          for(var k=1;k<=2&&li+k<lines.length;k++){
+            var nx=lines[li+k],nh=findLabels(nx);
+            if(nh.some(function(x){return !x.k}))break;
+            if(nh.length){if(nh.some(function(x){return colOf(nx,x.i)===col}))break;continue}
+            var cand=(nx.split('\t')[col]||'').replace(/^[\s:|]+/,'').split('|')[0].trim();
+            if(!cand)continue;
+            var cv=typed(def.type,cand);
+            if(cv!==null&&def.type==='text'&&!splitMakeModel(cand))cv=null;
+            if(cv!==null){v=cv;raw=cand;used[li+k]=true;break}
+          }
         }
-        var v=typed(def.type,cell);
-        (got[h.k]=got[h.k]||[]).push({value:v,raw:v===null?null:cell,label:line.slice(h.i,h.end)});
+        (got[h.k]=got[h.k]||[]).push({value:v,raw:v===null?null:raw,label:line.slice(h.i,h.end)});
       });
     });
     var fields={};
@@ -894,6 +915,11 @@ var MPD = (function(){
       if(uniq.length>1){fields[def.k]=F(null,'two different values on the document','conflict',{candidates:uniq.map(function(u){return {value:u.value,source:u.label+': '+u.raw}})});return}
       fields[def.k]=F(uniq[0].value,uniq[0].label+': '+uniq[0].raw,'exact');
     });
+    // No Make field on the document, model reads "PORSCHE/TAYCAN 4S": split on the slash, only when the left part is a known make.
+    if(fields.make.value===null&&fields.model.value!==null){
+      var sp=splitMakeModel(fields.model.value);
+      if(sp){fields.make=F(sp.make,'derived from '+fields.model.source,'derived');fields.model=F(sp.model,fields.model.source,fields.model.status)}
+    }
     var found=LTA_FIELDS.filter(function(d){return fields[d.k].value!==null}).length;
     return {fields:fields,found:found,skippedLabels:skipped,readable:lines.join('').replace(/\s/g,'').length>0};
   }
