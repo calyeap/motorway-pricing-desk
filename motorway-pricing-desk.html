@@ -151,20 +151,21 @@ button,input,select{font:inherit;color:inherit}
 
 /* Summary strip + pool */
 .strip{background:#fff;border-bottom:1px solid var(--hairline);padding:14px var(--pad);display:flex;align-items:center;gap:10px 36px;flex-wrap:wrap}
-.strip .big{font-size:20px;font-weight:600;margin-top:2px;white-space:nowrap}
+.strip .prow{display:flex;align-items:baseline;gap:6px 24px;flex-wrap:wrap;margin-top:2px}
+.strip .big{font-size:20px;font-weight:600;white-space:nowrap}
 .strip .big span{font-size:13px;font-weight:400;color:var(--muted)}
 .strip .counts{display:flex;gap:28px;align-items:center;font-size:13.5px;flex-wrap:wrap}
 .strip .counts>span{display:flex;gap:8px;align-items:center;white-space:nowrap}
 .strip .counts b{font-weight:500}
 .strip .end{margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.strip .hist{display:inline-flex;gap:12px;align-items:center;flex-wrap:wrap}
-.strip .hist summary{list-style:none}
-.strip .hist summary::-webkit-details-marker{display:none}
-.strip .hist summary::after{content:' ▾';font-size:10px}
-.strip .hist[open] summary::after{content:' ▴'}
+.strip .histtog::after{content:' ▾';font-size:10px}
+.strip .histtog[aria-expanded=true]::after{content:' ▴'}
+.strip .histbody{flex-basis:100%;display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-top:-4px;text-align:right}
+.strip .hacts{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.strip .hacts .btn{padding:7px 14px;font-size:12px}
+.strip .sm{display:none}
 .strip .needsBtn{font-size:13.5px;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
 .strip .needsBtn b{font-weight:500}
-.strip .histhint{flex-basis:100%;margin-top:-4px}
 .wrapP{padding:20px var(--pad) 24px}
 .panel{background:#fff;border:1px solid var(--hairline);display:flex;flex-direction:column;min-width:0;border-radius:var(--r-panel);overflow:hidden}
 #stPool .panel{min-height:60vh} /* tab switches don't jump the footer */
@@ -398,7 +399,14 @@ details.story .q>div{margin-top:3px}
   .rv{grid-template-columns:1fr auto;padding:9px 12px}
   .rv .k{grid-column:1/-1}
   .strip{padding:12px 16px;gap:10px}
-  .strip .counts{flex-direction:column;align-items:flex-start;gap:6px}
+  .strip .prow{flex-direction:column;align-items:flex-start;gap:4px}
+  .strip .counts{gap:6px 14px}
+  .strip .end{flex-direction:column;align-items:flex-start;gap:0}
+  .strip .histbody{align-items:stretch;text-align:left;gap:10px;margin-top:0}
+  .strip .hacts{justify-content:flex-start;gap:10px}
+  .strip .hacts .btn{flex:1;font-size:13px}
+  .strip .lg{display:none}
+  .strip .sm{display:inline}
   .strip .end .sub{display:none}
   .wrapP{padding:12px 16px}
   .tabs .fl{display:none}
@@ -1284,7 +1292,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     lta:null, ltaFrom:null, editing:{},
     subject:null,
     listings:[], ignored:[], header:null, pages:0, fieldsInSource:null, pool:null,
-    tab:'short', why:false, excOnly:false,
+    tab:'short', why:false, excOnly:false, histOpen:false,
     inc:{}, inDesk:{}, sort:'price', dir:1, showSec:false,
     defaults:BLANK_INPUTS,
     finalOffer:'',                 // owner input on the Decision Summary; never overwrites the dealer's starting offer
@@ -1363,14 +1371,14 @@ if(typeof module!=='undefined')module.exports=MPD;
       back.innerHTML=lbl('← This car','← Back');
       next.innerHTML=S.listings.length?lbl('Review shortlist →','Shortlist →'):'Paste results to continue';next.disabled=!S.listings.length;
     }else if(S.view==='import'&&S.stage==='pool'){
-      back.innerHTML=lbl('← Edit import','← Back');
+      back.innerHTML=lbl('← Edit import','← Import');
       next.textContent='Comparison →';next.disabled=!deskList().length;
     }else if(S.view==='desk'){
-      back.innerHTML=lbl('← Shortlist','← Back');next.textContent='Decision →';
+      back.textContent='← Shortlist';next.textContent='Decision →';
       var e=M.economics(inputs());
       mid.innerHTML='<span class="maxchip" aria-live="polite"><span class="eyebrow">Max purchase</span><b class="num">'+(e.max===null?'—':money(e.max))+'</b>'+(e.provisional?'<span class="prov">provisional</span>':'')+'</span>';
     }else if(S.view==='decision'){
-      back.innerHTML=lbl('← Comparison','← Back');next.textContent='Copy appraisal summary';
+      back.textContent='← Comparison';next.textContent='Copy appraisal summary';
     }
   }
   $('actBack').addEventListener('click',function(){
@@ -1412,7 +1420,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':'<span class="lg">'+s.transfers+(s.owners!==null?' <span class="u">owners '+s.owners+' (derived)</span>':'')+'</span>'+(s.owners!==null?'<span class="sm">'+s.owners+' <span class="u">owners</span></span>':'<span class="sm">'+s.transfers+' <span class="u">transfers</span></span>'))+
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
         '<div class="sec">'+(s.reg?'<div>Registered <b class="num">'+M.fmtISO(s.reg)+'</b></div>':'')+
-        (ctx.length?'<div>'+ctx.join(' · ')+' · context only</div>':'')+
+        (ctx.length?'<div>'+ctx.join(' · ')+'</div>':'')+
         (coe.length?'<div>'+coe.join(' · ')+'</div>':'')+
         (s.transfers!==null&&s.owners!==null?'<div class="sm">'+s.transfers+' transfer'+pl(s.transfers,'','s')+' → '+s.owners+' owners (derived)'+(s.coeM!==null?' · COE '+coeWord(s):'')+'</div>':'')+
         (s.roadTaxExpiry?'<div>Road tax to <b class="num">'+M.fmtISO(s.roadTaxExpiry)+'</b></div>':'')+'</div>'+
@@ -1729,18 +1737,20 @@ if(typeof module!=='undefined')module.exports=MPD;
     var N=S.listings.length,total=S.header&&S.header.total?S.header.total:null,more=!S.demo&&total!==null&&N<total;
     // Dealer-facing summary only. Parser detail (ignored page blocks, block kinds) stays internal.
     $('strip').innerHTML=
-      '<div><div class="eyebrow">Parsed from your paste'+(S.pages>1?' ('+S.pages+' pages)':'')+'</div><div class="big num">'+N+' <span>listings parsed'+(more?' · '+total+' on SGCarMart':'')+'</span></div></div>'+
+      '<div class="parsed"><div class="eyebrow">Parsed from your paste'+(S.pages>1?' ('+S.pages+' pages)':'')+'</div><div class="prow"><div class="big num">'+N+' <span>listings parsed'+(more?' · '+total+' on SGCarMart':'')+'</span></div>'+
       '<div class="counts">'+
         '<span><span class="dot sage"></span><b class="num">'+st+'</b> active</span>'+
         (c.sold?'<span><span class="dot"></span><b class="num">'+c.sold+'</b> sold excluded</span>':'')+
         (c.own?'<span class="amb"><span class="dot amb"></span><b class="num">'+c.own+'</b> Motorway stock</span>':'')+
         (c.needs?'<button class="link amb needsBtn" type="button" data-tab="needs"><span class="dot amb"></span><b class="num">'+c.needs+'</b> listing'+pl(c.needs,'','s')+' need'+pl(c.needs,'s','')+' review</button>':'')+
-      '</div>'+
+      '</div></div></div>'+
       '<div class="end">'+(more?'<button class="link" type="button" id="addPage">Add next page</button>':'')+'<button class="link" type="button" id="pasteAgain">Update search</button>'+
-        (S.demo?'':'<span class="vsep"></span><details class="hist"><summary class="link">Market history</summary><button class="link" type="button" id="saveSnap">Save today\'s market'+(S.lastSaved?' (saved '+esc(S.lastSaved)+')':'')+'</button><label class="link" for="snapFile" style="cursor:pointer">Compare with previous</label></details>')+'</div>'+
-      // Daily tracking cue. Never a read without a previous capture.
-      (S.demo||S.diff?'':'<div class="sub histhint">'+(S.lastSaved?'Saved today\'s market ('+esc(S.lastSaved)+'). Tomorrow: paste the same search again, then Compare with previous.':'Save today\'s market to start tracking changes.')+'</div>');
+        (S.demo?'':'<span class="vsep"></span><button class="link histtog" type="button" id="histToggle" aria-expanded="'+(S.histOpen?'true':'false')+'" aria-controls="histBody">Market history</button>')+'</div>'+
+      // Market history: one small grouped feature on its own row under the actions. Daily tracking cue lives inside it; never a read without a previous capture.
+      (S.demo?'':'<div class="histbody" id="histBody"'+(S.histOpen?'':' hidden')+'><div class="hacts"><button class="btn ghostb" type="button" id="saveSnap"><span class="lg">Save today\'s market</span><span class="sm">Save today</span></button><label class="btn ghostb" for="snapFile"><span class="lg">Compare with previous</span><span class="sm">Compare previous</span></label></div>'+
+        (S.diff?'':'<div class="sub histhint">'+(S.lastSaved?'Saved today\'s market ('+esc(S.lastSaved)+'). Tomorrow: paste the same search again, then Compare with previous.':'Save today\'s market to start tracking changes.')+'</div>')+'</div>');
     $('pasteAgain').onclick=function(){$('pasteBox').value='';setStage('paste')};
+    if($('histToggle'))$('histToggle').onclick=function(){S.histOpen=!S.histOpen;renderStrip()};
     if($('addPage'))$('addPage').onclick=function(){S.appendNext=true;$('addPage').textContent='Now press Ctrl + V to add the next page'};
     var nb=$('strip').querySelector('.needsBtn');if(nb)nb.onclick=function(){S.tab='needs';renderPool()};
     if($('saveSnap'))$('saveSnap').onclick=downloadSnapshot;

@@ -175,15 +175,17 @@ async function taycanSubject(p) {
   check('D: Wider matches tab hidden when it adds nothing beyond the shortlist (Taycan); no "Plausible" wording', (await p.locator('button[data-tab="plaus"]').count()) === 0 && !(await text(p, '#stPool')).includes('Plausible') && (await p.locator('#poolTabs .tab').count()) === 2);
   check('D: footer labels are destinations: ← Edit import · Comparison →', (await text(p, '#actBack')) === '← Edit import' && (await text(p, '#actNext')) === 'Comparison →');
   check('D: dealer-facing strip: parsed / active / sold / Motorway stock, no parser detail, no Needs/Ignored tabs at 0', /9 listings parsed/.test(await text(p, '#strip')) && /5\s*active/.test(await text(p, '#strip')) && /4\s*sold excluded/.test(await text(p, '#strip')) && /1\s*Motorway stock/.test(await text(p, '#strip')) && !/ignored|need review|page blocks/i.test(await text(p, '#strip')) && (await p.locator('#poolTabs .tab').count()) === 2 && !(await text(p, '#poolTabs')).includes('Ignored'));
-  check('D: actions read Update search · Market history (Add next page only when SGCarMart has more)', (await text(p, '#pasteAgain')) === 'Update search' && (await p.locator('#addPage').count()) === 0 && (await text(p, '#strip .hist summary')) === 'Market history');
+  check('D: actions read Update search · Market history (Add next page only when SGCarMart has more)', (await text(p, '#pasteAgain')) === 'Update search' && (await p.locator('#addPage').count()) === 0 && (await text(p, '#histToggle')) === 'Market history');
   // Snapshot saving lives in the parsed-results strip: paste = appraise now, Save snapshot = track the market later.
   const dl = p.waitForEvent('download');
-  check('D: first run says how tracking starts; daily labels', (await text(p, '#strip .histhint')) === "Save today's market to start tracking changes." && (await p.locator('#pulse:not([hidden])').count()) === 0);
-  await p.click('#strip .hist summary'); // Market history ▾
-  check('D: Market history actions read Save today\'s market · Compare with previous', /^Save today's market/.test(await text(p, '#saveSnap')) && (await text(p, 'label[for="snapFile"]')) === 'Compare with previous');
+  check('D: Market history closed by default: actions and cue hidden, nothing else on the row', await p.isHidden('#histBody') && (await p.getAttribute('#histToggle', 'aria-expanded')) === 'false' && (await p.locator('#pulse:not([hidden])').count()) === 0);
+  await p.click('#histToggle'); // Market history ▾
+  check('D: open: actions on their own row, not inline with Update search', await p.isVisible('#histBody') && await p.evaluate(() => { const a = document.querySelector('#pasteAgain').getBoundingClientRect(), b = document.querySelector('#saveSnap').getBoundingClientRect(), c = document.querySelector('label[for="snapFile"]').getBoundingClientRect(); return b.top >= a.bottom && c.left - b.right >= 8; }));
+  check('D: first run says how tracking starts; daily labels', (await text(p, '#strip .histhint')) === "Save today's market to start tracking changes.");
+  check('D: Market history actions read Save today\'s market · Compare with previous', (await text(p, '#saveSnap')) === "Save today's market" && (await text(p, 'label[for="snapFile"]')) === 'Compare with previous');
   await p.click('#saveSnap');
   const file = await dl;
-  check('D: after saving, the cue points to tomorrow', /^Saved today's market \(\d{4}-\d{2}-\d{2}\)\. Tomorrow: paste the same search again, then Compare with previous\.$/.test(await text(p, '#strip .histhint')));
+  check('D: after saving, the cue points to tomorrow (disclosure stays open)', await p.isVisible('#histBody') && /^Saved today's market \(\d{4}-\d{2}-\d{2}\)\. Tomorrow: paste the same search again, then Compare with previous\.$/.test(await text(p, '#strip .histhint')));
   const snapPath = out + 'snapshot-taycan.json';
   await file.saveAs(snapPath);
   const snap = JSON.parse(readFileSync(snapPath, 'utf8'));
@@ -221,7 +223,7 @@ async function taycanSubject(p) {
   const snapE = await p.evaluate(() => { const s = window.__mpd.state; return null; });
   const eSnapPath = out + 'snapshot-e200.json';
   const dl2 = p.waitForEvent('download');
-  await p.click('#strip .hist summary'); // Market history ▾
+  if (await p.isHidden('#histBody')) await p.click('#histToggle'); // Market history ▾ (stays open once opened in this session)
   await p.click('#saveSnap');
   await (await dl2).saveAs(eSnapPath);
   await p.click('#pasteAgain');
@@ -252,7 +254,11 @@ async function taycanSubject(p) {
   await p.waitForSelector('#stPool:not([hidden])');
   const bandM = await text(p, '#band');
   check('E: phone band shows owners, not transfers (35,000 km · 3 owners · 5y 6m)', /35,000\s*km/.test(bandM) && /3\s*owners/.test(bandM) && !/transfers/i.test(bandM) && /5y 6m/.test(bandM) && !/inferred/.test(bandM));
-  check('E: phone sticky labels are short', (await text(p, '#actBack')) === '← Back' && (await text(p, '#actNext')) === 'Comparison →');
+  check('E: phone footer uses destinations: ← Import · Comparison →', (await text(p, '#actBack')) === '← Import' && (await text(p, '#actNext')) === 'Comparison →');
+  await p.click('#histToggle');
+  check('E: phone Market history: short labels, stacked under the toggle, cue below', (await text(p, '#saveSnap')) === 'Save today' && (await text(p, 'label[for="snapFile"]')) === 'Compare previous' && await p.evaluate(() => { const t = document.querySelector('#histToggle').getBoundingClientRect(), u = document.querySelector('#pasteAgain').getBoundingClientRect(), s = document.querySelector('#saveSnap').getBoundingClientRect(), h = document.querySelector('#strip .histhint').getBoundingClientRect(); return t.top >= u.bottom && s.top >= t.bottom && h.top >= s.bottom && s.right <= innerWidth; }));
+  await p.click('#histToggle');
+  check('E: phone Market history closes again', await p.isHidden('#histBody'));
   check('E: shortlist as readable cards with evidence', await p.isVisible('#poolCards .mc') && (await text(p, '#poolCards')).includes('DEP / YR') && /Motorway stock/i.test(await text(p, '#poolCards')));
   const tog = await p.evaluate(() => { const b = document.querySelector('#poolCards .tapck').getBoundingClientRect(); return [b.width, b.height]; });
   check('E: card include toggle ≥ 44 px', tog[0] >= 44 && tog[1] >= 44, tog.join('×'));
