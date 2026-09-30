@@ -1,0 +1,5 @@
+node_modules/
+test-output/
+# Never commit real customer documents. Real LTA PDFs contain PII.
+*.real.pdf
+fixtures/private/
