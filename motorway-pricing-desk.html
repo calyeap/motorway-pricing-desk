@@ -710,11 +710,23 @@ var MPD = (function(){
   // V0.6 rule, null-safe: "very different COE situation" = renewed, under 2 years of original COE, or COE left not stated.
   function coeDiffers(l){return !!l.renewed||l.coeM===null||l.coeM===undefined||l.coeM<24}
   function coeReason(l){return l.renewed?'renewed COE':(l.coeM===null||l.coeM===undefined)?'COE left not stated':l.coeM<24?'short COE':null}
+  // Why a listing's COE situation is not like-for-like with this car (null = compatible).
+  // Original-COE (or unknown) car: the V0.6 rule above, unchanged. Renewed-COE car (inferred from its own dates): a comp is
+  // compatible only if it is also renewed and its COE left is within COE_NEAR months; anything else is context, not evidence.
+  var COE_NEAR=12;
+  function ymS(m){return Math.floor(m/12)+'y '+(m%12)+'m'}
+  function coeContext(l,s){
+    if(!(s&&s.renewed&&s.coeM!==null&&s.coeM!==undefined))return coeReason(l);
+    if(l.coeM===null||l.coeM===undefined)return 'COE left not stated';
+    if(!l.renewed)return 'original COE · this car renewed';
+    if(Math.abs(l.coeM-s.coeM)>COE_NEAR)return 'COE left '+ymS(l.coeM)+' vs this car '+ymS(s.coeM);
+    return null;
+  }
 
   // ---------- SGCarMart Ctrl+A paste ----------
   var RX={
     reg:/^\d{2}-[A-Z][a-z]{2}-\d{4}$/, price:/^\$[\d,]+$/, dep:/^\$[\d,]+ \/yr$/, instl:/^Instl\./,
-    coe:/^\((.+) COE left\)$/, km:/^([\d,]+) km$/, cc:/^([\d,]+) cc$/, owners:/^(\d+) Owners?$/,
+    coe:/^\((.+) COE left\)$/, km:/^([\d,]+) km$/, cc:/^([\d,]+) cc$/, owners:/^(\d+) Owners?$/, ownersMore:/^More than (\d+)(?: Owners?)?$/i,
     posted:/^Posted (\d{2}-[A-Z][a-z]{2}-\d{4})$/, fuel:/^Fuel Type: (.+)$/
   };
   var MULTI_MAKES=['land rover','alfa romeo','aston martin','mercedes benz'];
@@ -777,12 +789,12 @@ var MPD = (function(){
       // Spec zone after the registration date.
       var sl=-1;for(k=r+1;k<Math.min(L.length,r+11);k++){if(L[k].trim()==='shortlist'){sl=k;break}}
       var zoneEnd=sl;
-      if(zoneEnd<0){for(k=r+1;k<Math.min(L.length,r+11);k++){if(RX.owners.test(L[k].trim())){zoneEnd=k+1;break}}}
+      if(zoneEnd<0){for(k=r+1;k<Math.min(L.length,r+11);k++){if(RX.owners.test(L[k].trim())||RX.ownersMore.test(L[k].trim())){zoneEnd=k+1;break}}}
       if(zoneEnd<0)zoneEnd=Math.min(L.length,r+7);
-      var coe=null,km=null,cc=null,own=null,naZone=false;
+      var coe=null,km=null,cc=null,own=null,ownMore=null,naZone=false;
       for(k=r+1;k<zoneEnd;k++){
         t=L[k].trim();
-        if(!coe&&RX.coe.test(t))coe=t;else if(!km&&RX.km.test(t))km=t;else if(!cc&&RX.cc.test(t))cc=t;else if(!own&&RX.owners.test(t))own=t;else if(t==='N.A')naZone=true;
+        if(!coe&&RX.coe.test(t))coe=t;else if(!km&&RX.km.test(t))km=t;else if(!cc&&RX.cc.test(t))cc=t;else if(!own&&RX.owners.test(t))own=t;else if(!own&&!ownMore&&RX.ownersMore.test(t))ownMore=t;else if(t==='N.A')naZone=true;
       }
       var tail=L.slice(sl>=0?sl+1:zoneEnd),posted=null,dealer=null,fuel=null,desc=[];
       tail.forEach(function(x,ix){
@@ -802,7 +814,8 @@ var MPD = (function(){
       f.reg=F(reg,L[r].trim(),reg?'exact':'missing');
       f.coeM=coe?F(coeMonths(RX.coe.exec(coe)[1]),coe,'exact'):F(null,notStated(naZone),'missing');
       f.km=km?F(toNum(km),km,'exact'):F(null,notStated(naZone),'missing');
-      f.owners=own?F(toNum(own),own,'exact'):F(null,notStated(naZone),'missing');
+      // "More than 6": a lower bound, not a count. owners stays null (never used as a number); ownersGt keeps the partial truth.
+      f.owners=own?F(toNum(own),own,'exact'):ownMore?F(null,ownMore,'range',{gt:+RX.ownersMore.exec(ownMore)[1]}):F(null,notStated(naZone),'missing');
       // Renewed COE: explicit title marker, or COE left longer than the original 10-year term allows.
       var ren=null,m1;
       if((m1=title2.match(/\(New \d+-yr COE\)/i)))ren=m1[0];
@@ -817,7 +830,7 @@ var MPD = (function(){
         adType:adType, dealer:dealer, posted:posted, fuel:fuel, desc:desc.join(' '), url:null,
         f:f, renewedSource:ren, status:alt?'needs_input':'ok',
         conflict:alt?{field:'variant',candidates:[{value:shortName(title2),source:title2},{value:shortName(alt),source:alt}]}:null,
-        price:f.price.value, dep:f.dep.value, reg:reg, km:f.km.value, owners:f.owners.value, coeM:f.coeM.value, renewed:!!ren,
+        price:f.price.value, dep:f.dep.value, reg:reg, km:f.km.value, owners:f.owners.value, ownersGt:f.owners.gt||null, coeM:f.coeM.value, renewed:!!ren,
         omv:null, arf:null, cond:null, own:isOwnStock(dealer)
       };
       if(alt)l.variant=null;
@@ -839,6 +852,7 @@ var MPD = (function(){
     {k:'model',label:'Model',labels:['Vehicle Model','Model'],type:'text'},
     {k:'yearMfg',label:'Year of manufacture',labels:['Year of Manufacture','Manufacturing Year','Year Manufactured'],type:'year'},
     {k:'regDate',label:'Original registration date',labels:['Original Registration Date','Original Reg Date','Original Reg. Date'],type:'date'},
+    {k:'firstRegDate',label:'First registration date',labels:['First Registration Date','First Reg Date','First Reg. Date'],type:'date'}, // kept separate; not used for matching
     {k:'transfers',label:'Number of transfers',labels:['No. of Transfers','No of Transfers','Number of Transfers','No. of Transfer'],type:'int'},
     {k:'propellant',label:'Propellant',labels:['Propellant','Fuel Type'],type:'propellant'},
     {k:'colour',label:'Colour',labels:['Primary Colour','Vehicle Colour','Colour','Color'],type:'colour'},
@@ -846,7 +860,9 @@ var MPD = (function(){
     {k:'arf',label:'ARF',labels:['Actual ARF Paid','ARF Paid','Additional Registration Fee','ARF'],type:'money'},
     {k:'coeExpiry',label:'COE expiry date',labels:['COE Expiry Date','COE Expiry'],type:'date'},
     {k:'coeCat',label:'COE category',labels:['COE Category','Vehicle COE Category'],type:'coecat'},
-    {k:'qp',label:'Quota premium (QP)',labels:['Quota Premium','QP Paid','PQP Paid','COE QP'],type:'money'},
+    // QP and PQP are different facts. Full label "Quota Premium (QP)" so "(QP)" is never read as the value cell.
+    {k:'qp',label:'Quota premium (QP)',labels:['Quota Premium (QP)','Quota Premium','QP Paid','COE QP'],type:'money'},
+    {k:'pqp',label:'PQP paid',labels:['PQP Paid','PQP'],type:'money'},
     {k:'parf',label:'Minimum PARF benefit',labels:['Minimum PARF Benefit','Min PARF Benefit','Min. PARF Benefit'],type:'money'},
     {k:'parfElig',label:'PARF eligibility',labels:['PARF Eligibility','PARF Eligible'],type:'yesno'},
     {k:'roadTaxExpiry',label:'Road tax expiry (optional)',labels:['Road Tax Expiry Date','Road Tax Expiry'],type:'date'}
@@ -859,7 +875,7 @@ var MPD = (function(){
     'Registered Address','Address','Postal Code','Date of Birth','Birth Date','DOB','Contact No.','Contact Number','Email','Company Name','UEN',
     'Secondary Colour','Vehicle Type','Vehicle Scheme','Vehicle Attachment 1','Vehicle Attachment','Engine Capacity','Power Rating','Maximum Power Output',
     'Max Unladen Weight','Maximum Unladen Weight','Max Laden Weight','Maximum Laden Weight','Lifespan Expiry Date','Inspection Due Date',
-    'Effective Registration Date','First Registration Date','Intended Transfer Date','PARF Eligibility Expiry Date','Scheme'];
+    'Effective Registration Date','Intended Transfer Date','PARF Eligibility Expiry Date','Scheme'];
   var LABELS=(function(){
     var a=[];LTA_FIELDS.forEach(function(f){f.labels.forEach(function(x){a.push({t:x.toLowerCase(),k:f.k})})});
     LTA_SKIP.forEach(function(x){a.push({t:x.toLowerCase(),k:null})});
@@ -875,6 +891,7 @@ var MPD = (function(){
     return {make:m[1].trim(),model:m[2].trim()};
   }
   function isB(ch){return ch===undefined||/[\s:\t|]/.test(ch)}
+  function isDash(c){return /^[-–—]$/.test(String(c||'').trim())}
   function findLabels(line){
     var lo=line.toLowerCase(),out=[],i=0;
     while(i<lo.length){
@@ -896,8 +913,9 @@ var MPD = (function(){
     if(type==='make')return MAKES.indexOf(s.toLowerCase())>=0?s:null;
     if(type==='propellant')return /^(petrol|diesel|electric|cng|lpg|hydrogen)(-(electric|cng))?( \(plug-?in( hybrid)?\))?$/i.test(s)?s:null;
     if(type==='colour')return s.split(' ').length<=4&&s.split(' ').every(function(w){return COLOUR_WORDS.test(w)})?s:null;
-    if(type==='coecat')return /^(cat(egory)?\.? ?)?[A-E]$/i.test(s)?s:null;
-    if(type==='yesno')return /^(yes|no|y|n|eligible|not eligible)$/i.test(s)?s:null;
+    // A–E, optionally with LTA's description ("E - Open Category", "Category B (Cars above 1600cc …)"). Value kept as read.
+    if(type==='coecat')return /^(cat(egory)?\.? ?)?[A-E](\s*[-–:]\s*[A-Za-z0-9 ,.&()\/'+]{1,60}|\s+\([A-Za-z0-9 ,.&\/'+-]{1,60}\))?$/i.test(s)?s:null;
+    if(type==='yesno')return /^(yes|no|y|n|eligible|not eligible|forfeited)$/i.test(s)?s:null;
     return /^[A-Za-z0-9][A-Za-z0-9 +\-\/().&']{0,39}$/.test(s)&&s.split(' ').length<=6?s:null;
   }
   // lines: strings in reading order; '\t' (or 2+ spaces) marks a column break from the PDF layout.
@@ -916,11 +934,11 @@ var MPD = (function(){
         var def=LTA_FIELDS.filter(function(f){return f.k===h.k})[0];
         var endAt=hi+1<hits.length?hits[hi+1].i:line.length;
         var cell=line.slice(h.end,endAt).replace(/^[\s:|]+/,'').split(/\t|\|/)[0].trim();
-        var v=typed(def.type,cell),raw=cell;
+        var v=typed(def.type,cell),raw=cell,dash=def.type==='money'&&isDash(cell);
         // Value below the label (current LTA layout): look at most two lines down, in the label's own column.
         // Stop at any personal / boundary label. Skip another field's label row only when that row has no label
         // in this column. Accept only what this field's own type check accepts; free text only when it is led by a known make.
-        if(v===null){
+        if(v===null&&!dash){
           var col=colOf(line,h.i);
           for(var k=1;k<=2&&li+k<lines.length;k++){
             var nx=lines[li+k],nh=findLabels(nx);
@@ -932,14 +950,17 @@ var MPD = (function(){
             var cv=typed(def.type,cand);
             if(cv!==null&&def.type==='text'&&!splitMakeModel(cand))cv=null;
             if(cv!==null){v=cv;raw=cand;used[li+k]=true;break}
+            if(def.type==='money'&&isDash(cand)){dash=true;used[li+k]=true;break}
           }
         }
-        (got[h.k]=got[h.k]||[]).push({value:v,raw:v===null?null:raw,label:line.slice(h.i,h.end)});
+        (got[h.k]=got[h.k]||[]).push({value:v,raw:v===null?null:raw,label:line.slice(h.i,h.end),dash:v===null&&dash});
       });
     });
     var fields={};
     LTA_FIELDS.forEach(function(def){
       var arr=(got[def.k]||[]).filter(function(x){return x.value!==null});
+      var dsh=(got[def.k]||[]).filter(function(x){return x.dash})[0];
+      if(!arr.length&&dsh){fields[def.k]=F(null,dsh.label+': - (none on the document)','none');return}
       if(!arr.length){fields[def.k]=F(null,(got[def.k]&&got[def.k].length)?'label found, value not recognised — enter it if needed':'not on document','missing');return}
       var uniq=[];arr.forEach(function(x){if(!uniq.some(function(u){return u.value===x.value}))uniq.push(x)});
       if(uniq.length>1){fields[def.k]=F(null,'two different values on the document','conflict',{candidates:uniq.map(function(u){return {value:u.value,source:u.label+': '+u.raw}})});return}
@@ -950,7 +971,7 @@ var MPD = (function(){
       var sp=splitMakeModel(fields.model.value);
       if(sp){fields.make=F(sp.make,'derived from '+fields.model.source,'derived');fields.model=F(sp.model,fields.model.source,fields.model.status)}
     }
-    var found=LTA_FIELDS.filter(function(d){return fields[d.k].value!==null}).length;
+    var found=LTA_FIELDS.filter(function(d){return fields[d.k].value!==null||fields[d.k].status==='none'}).length;
     return {fields:fields,found:found,skippedLabels:skipped,readable:lines.join('').replace(/\s/g,'').length>0};
   }
   // pdf.js text items {str,x,y,w,page} → visual lines. Wide gaps become '\t' so two-column layouts stay separable.
@@ -996,11 +1017,12 @@ var MPD = (function(){
     var make=titleCase(g('make')),model=titleCase(g('model'));
     return {
       name:[make,model].filter(Boolean).join(' ')||'Car not identified', make:make, model:model,
-      reg:reg, km:km, transfers:tr,
+      reg:reg, firstReg:g('firstRegDate'), km:km, transfers:tr,                 // registration facts kept separate; matching uses reg
+
       owners:tr===null?null:tr+1, ownersDerived:tr!==null,           // owners = transfers + 1: derived, dealer-confirmed rule (Vendi)
       coeM:coeM, renewed:renewed, coeStatusInferred:!!(reg&&exp),   // original vs renewed is inferred from the two dates
       coeExpiry:exp, roadTaxExpiry:g('roadTaxExpiry'),
-      omv:g('omv'), arf:g('arf'), qp:g('qp'), parf:g('parf'), parfElig:g('parfElig'), coeCat:g('coeCat'),
+      omv:g('omv'), arf:g('arf'), qp:g('qp'), pqp:g('pqp'), parf:g('parf'), parfNone:!!(fields.parf&&fields.parf.status==='none'), parfElig:g('parfElig'), coeCat:g('coeCat'),
       propellant:titleCase(g('propellant')), colour:titleCase(g('colour')), yearMfg:g('yearMfg'), cond:null
     };
   }
@@ -1012,11 +1034,16 @@ var MPD = (function(){
   var NOISE_TOK={electric:1,auto:1,a:1,class:1};
   var BODY_TOK={cross:1,turismo:1,sport:0,coupe:1,cabriolet:1,convertible:1,estate:1,wagon:1,shooting:1,brake:1,roadster:1,targa:1,spyder:1,spider:1,touring:1,allroad:1,limousine:1,lwb:1};
   function isSeat(t){return /^\d\+\d$/.test(t)}
-  function tokens(s){return String(s||'').toLowerCase().replace(/\([^)]*\)/g,' ').split(/[^a-z0-9+]+/).filter(Boolean)}
+  // Harmless spelling differences collapse: a decimal point between digits ("2.2" → "22") and a lone letter suffix
+  // after a standalone number ("2.2 M" → "22m", "1.5 A" → "15a"). Applied to both the car and every title, so it is symmetric.
+  function tokens(s){return String(s||'').toLowerCase().replace(/\([^)]*\)/g,' ').replace(/(^|[^a-z0-9.])(\d+(?:\.\d+)?)\s+([a-z])(?![a-z0-9])/g,'$1$2$3').replace(/(\d)\.(?=\d)/g,'$1').split(/[^a-z0-9+]+/).filter(Boolean)}
+  var OPC_RX=/\b(OPC|off[- ]peak)\b/i; // Off-Peak Car scheme: a different registration scheme, never an exact match for a normal car
   function familyKey(subj){
     var mt=tokens(subj.model).filter(function(t){return !isSeat(t)&&!NOISE_TOK[t]});
     var mk=tokens(subj.make);
-    return {make:mk[0]||'',makeAll:mk,fam:mt[0]||'',variant:mt.slice(1)};
+    // variantText: the variant as the document writes it (display only; matching uses the normalised tokens).
+    var vt=String(subj.model||'').replace(/\([^)]*\)/g,' ').split(/\s+/).filter(function(w){var tk=tokens(w);return tk.length&&!tk.every(function(t){return t===mt[0]||isSeat(t)||NOISE_TOK[t]})}).join(' ');
+    return {make:mk[0]||'',makeAll:mk,fam:mt[0]||'',variant:mt.slice(1),variantText:vt,opc:OPC_RX.test(String(subj.model||''))};
   }
   function familyMatch(title,fk){if(!fk.fam)return true;var t=tokens(title);return t.indexOf(fk.fam)>=0&&(!fk.make||t.indexOf(fk.make)>=0)}
   function variantClass(title,fk){
@@ -1025,10 +1052,14 @@ var MPD = (function(){
     var missing=fk.variant.filter(function(v){return lt.indexOf(v)<0});
     var extra=lt.filter(function(t){return fk.variant.indexOf(t)<0});
     // Extra words in title order and original case, for the plain-English label.
-    var words=String(title).replace(/\([^)]*\)/g,' ').split(/\s+/).filter(function(w){var tk=tokens(w);return tk.length&&tk.every(function(t){return extra.indexOf(t)>=0})});
+    var prevIn=false,words=String(title).replace(/\([^)]*\)/g,' ').split(/\s+/).filter(function(w){var tk=tokens(w);
+      var inW=tk.length&&(tk.every(function(t){return extra.indexOf(t)>=0})||(prevIn&&/^[a-z]$/.test(tk.join(''))));prevIn=!!inW;return inW}); // "Type S": a lone letter stays with its word
     var body=words.filter(function(w){return tokens(w).some(function(t){return BODY_TOK[t]})});
     if(body.length)return {cls:'different',label:'Different body style — '+body.join(' '),extra:words};
-    if(!extra.length&&!missing.length)return {cls:'exact',label:'Exact variant'+(fk.variant.length?' — '+fk.variant.join(' ').toUpperCase().replace(/([A-Z])([A-Z]+)/g,function(_,a,b){return /\d/.test(_)?_:a+b.toLowerCase()}):''),extra:[]};
+    var opcDiff=OPC_RX.test(String(title))!==!!fk.opc;
+    if(!extra.length&&!missing.length&&!opcDiff)return {cls:'exact',label:'Exact variant'+(fk.variant.length?' — '+(fk.variantText||fk.variant.join(' ')).toUpperCase().replace(/([A-Z])([A-Z]+)/g,function(_,a,b){return /\d/.test(_)?_:a+b.toLowerCase()}):''),extra:[]};
+    if(opcDiff){var d=words.length?words.join(' '):missing.length?'title lacks “'+missing.join(' ')+'”':'';
+      return {cls:'adjacent',label:'Related variant — '+(d?d+' · ':'')+(fk.opc?'not OPC':'OPC (off-peak car)')+' · not the same spec',extra:words,opc:true}}
     return {cls:'adjacent',label:'Related variant — '+(words.length?words.join(' '):'title lacks “'+missing.join(' ')+'”')+' · not the same spec',extra:words};
   }
   function distance(l,s){
@@ -1049,14 +1080,14 @@ var MPD = (function(){
       var vc=variantClass(title,fk);l.vclass=familyMatch(title,fk)?vc.cls:'model';l.vlabel=familyMatch(title,fk)?vc.label:'Different model';
       l.possibleSame=!l.sold&&isPossibleSame(l,subj);
       var rd=(subj.reg&&l.reg)?Math.abs(monthsBetween(dateOf(l.reg),dateOf(subj.reg))):null;
-      l._rd=rd;l._dist=distance(l,subj);
+      l._rd=rd;l._dist=distance(l,subj);l.coeNote=coeContext(l,subj);l.opc=OPC_RX.test(title);
       if(l.status==='needs_input'){tier[id]='needs';return}
       if(l.sold){tier[id]='aside';reason[id]='Sold · SGCarMart listing status · no asking price';return}
       if(l.price===null){tier[id]='aside';reason[id]='Asking price not stated';return}
       if(l.vclass==='model'){tier[id]='aside';reason[id]='Different model';return}
       if(l.vclass==='different'){tier[id]='aside';reason[id]=l.vlabel;return}
       if(l.own){own.push(l);return}
-      if(coeDiffers(l)){refs.push(l);return}
+      if(l.coeNote){refs.push(l);return}
       if(rd!==null&&rd>36){tier[id]='aside';reason[id]='Registered more than 3 years apart';return}
       plaus.push(l);if(rd===null||rd<=18)cand.push(l);
     });
@@ -1066,17 +1097,17 @@ var MPD = (function(){
     refs.sort(function(a,b){return (a._rd===null?999:a._rd)-(b._rd===null?999:b._rd)||a.id-b.id});
     var refPick=refs.slice(0,2);
     short.forEach(function(l){tier[l.id]='short'});
-    refPick.forEach(function(l){tier[l.id]='short';reason[l.id]='Kept for reference · '+coeReason(l)});
+    refPick.forEach(function(l){tier[l.id]='short';reason[l.id]='Kept for reference · '+l.coeNote});
     // Motorway stock: shown for context, never counted as independent evidence.
     own.forEach(function(l){tier[l.id]='short';reason[l.id]='Motorway stock — excluded from independent evidence'});
     plaus.forEach(function(l){if(!tier[l.id])tier[l.id]='plausible'});
-    refs.slice(2).forEach(function(l){tier[l.id]='aside';reason[l.id]=coeReason(l).replace(/^./,function(c){return c.toUpperCase()})});
+    refs.slice(2).forEach(function(l){tier[l.id]='aside';reason[l.id]=l.coeNote.replace(/^./,function(c){return c.toUpperCase()})});
     return {tier:tier,reason:reason,shortlist:short.map(function(l){return l.id}).concat(refPick.map(function(l){return l.id}),own.map(function(l){return l.id})),
-      refs:refPick.map(function(l){return l.id}),own:own.map(function(l){return l.id}),plausible:plaus.length,family:fk,regKnown:!!subj.reg};
+      refs:refPick.map(function(l){return l.id}),own:own.map(function(l){return l.id}),plausible:plaus.length,family:fk,regKnown:!!subj.reg,coeRenewed:!!(subj.renewed&&subj.coeM!==null&&subj.coeM!==undefined),coeNear:COE_NEAR};
   }
   // V0.6 defaultInc() rule plus V0.8 exclusions: sold, Motorway stock, possible same car, different variant.
   function defaultInclude(l){
-    return !l.sold&&l.price!==null&&!l.own&&!l.possibleSame&&l.status!=='needs_input'&&l.vclass!=='different'&&l.vclass!=='model'&&!coeDiffers(l);
+    return !l.sold&&l.price!==null&&!l.own&&!l.possibleSame&&l.status!=='needs_input'&&l.vclass!=='different'&&l.vclass!=='model'&&!(('coeNote' in l)?l.coeNote:coeDiffers(l));
   }
   // Plain-English "why this comp" from existing data. No score.
   function whyComp(l,s){
@@ -1086,6 +1117,7 @@ var MPD = (function(){
     if(l.vlabel)w.push(l.vlabel);
     if(l._rd!==null&&l._rd!==undefined)w.push(l._rd===0?'registered the same month':'registered '+l._rd+' mo apart');
     if(l.km!==null&&s.km!==null){var d=l.km-s.km;w.push(d===0?'same mileage':Math.abs(d).toLocaleString('en-US')+' km '+(d<0?'lower':'higher')+' mileage')}
+    if(l.owners===null&&l.ownersGt)w.push('more than '+l.ownersGt+' owners (SGCarMart)');
     if(l.owners!==null&&s.owners!==null)w.push(l.owners===s.owners?'same owner count'+(s.ownersDerived?' (derived)':''):(l.owners<s.owners?'fewer':'more')+' owners');
     return w;
   }
@@ -1252,7 +1284,7 @@ var MPD = (function(){
   }
 
   return {MON:MON,parseDate:parseDate,dateOf:dateOf,fmtISO:fmtISO,monthsBetween:monthsBetween,addMonths:addMonths,ageYears:ageYears,toNum:toNum,median:median,today:today,
-    coeDiffers:coeDiffers,coeReason:coeReason,parseSgcm:parseSgcm,shortName:shortName,
+    coeDiffers:coeDiffers,coeReason:coeReason,coeContext:coeContext,tokens:tokens,parseSgcm:parseSgcm,shortName:shortName,
     LTA_FIELDS:LTA_FIELDS,LTA_SKIP:LTA_SKIP,findLabels:findLabels,typed:typed,PII_RX:PII_RX,parseLta:parseLta,itemsToLines:itemsToLines,subjectFrom:subjectFrom,titleCase:titleCase,
     buildPool:buildPool,familyKey:familyKey,evidence:evidence,economics:economics,F:F,
     isOwnStock:isOwnStock,variantClass:variantClass,defaultInclude:defaultInclude,whyComp:whyComp,market:market,carStory:carStory,
@@ -1304,6 +1336,12 @@ if(typeof module!=='undefined')module.exports=MPD;
   function plain(n){return (n<0?'−':'')+Math.abs(Math.round(n)).toLocaleString('en-US')}
   function kmF(n){return Math.round(n).toLocaleString('en-US')}
   function ym(m){return Math.floor(m/12)+'y '+(m%12)+'m'}
+  // Owners as SGCarMart states them: a count, or a lower bound ("More than 6" → ">6"). null when not stated.
+  function ownTxt(l){return l.owners!==null&&l.owners!==undefined?String(l.owners):l.ownersGt?'>'+l.ownersGt:null}
+  // Why this listing's COE is not like-for-like with THIS car (set by buildPool against the subject); V0.6 rule as fallback.
+  function coeNoteOf(l){return ('coeNote' in l)?l.coeNote:M.coeReason(l)}
+  function coeRenewedSubj(){return !!(S.pool&&S.pool.coeRenewed)}
+  function catShort(c){var m=String(c||'').match(/^(?:cat(?:egory)?\.? ?)?([A-E])\b/i);return m?m[1].toUpperCase():String(c||'')}
   function monYr(iso){if(!iso)return null;var p=iso.split('-');return M.MON[+p[1]-1]+' '+p[0]}
   // SGCarMart "Posted" date, as read. Days are counted to the capture date; this is not true time on market.
   function postedStr(l){
@@ -1408,10 +1446,10 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(s.propellant)line.push(esc(s.propellant));
     if(s.colour)line.push(esc(s.colour));
     if(s.yearMfg)line.push('Made '+s.yearMfg);
-    line.push('Min. PARF benefit '+(s.parf!==null?'<b class="num">'+money(s.parf)+'</b>':'<span class="na">not stated</span>'));
+    line.push('Min. PARF benefit '+(s.parf!==null?'<b class="num">'+money(s.parf)+'</b>':s.parfNone?'<b>none</b>'+(s.parfElig?' ('+esc(String(s.parfElig).toLowerCase())+')':''):'<span class="na">not stated</span>'));
     // Compact context line: only the values the LTA document actually gave. Context only — never in the maths.
     var ctx=[];if(s.omv!==null)ctx.push('OMV <b class="num">'+money(s.omv)+'</b>');if(s.arf!==null)ctx.push('ARF <b class="num">'+money(s.arf)+'</b>');
-    var coe=[];if(s.coeExpiry)coe.push('COE expires <b class="num">'+M.fmtISO(s.coeExpiry)+'</b>');if(s.qp!==null)coe.push('COE paid (QP) <b class="num">'+money(s.qp)+'</b>'+(s.coeCat?' · Cat '+esc(s.coeCat):''));
+    var coe=[];if(s.coeExpiry)coe.push('COE expires <b class="num">'+M.fmtISO(s.coeExpiry)+'</b>');if(s.qp!==null)coe.push('COE paid (QP) <b class="num">'+money(s.qp)+'</b>');if(s.pqp!==null)coe.push('PQP paid <b class="num">'+money(s.pqp)+'</b>');if(s.coeCat)coe.push('Cat '+esc(catShort(s.coeCat)));
     b.innerHTML=
       '<div class="who"><div class="eyebrow onDark">Appraising · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="model">'+esc(s.name)+'</div><div class="line">'+line.join(' · ')+'</div></div>'+
@@ -1419,7 +1457,7 @@ if(typeof module!=='undefined')module.exports=MPD;
         fig('Mileage',s.km===null?'<span class="na">not entered</span>':kmF(s.km)+' <span class="u">km</span>')+
         fig('Transfers',s.transfers===null?'<span class="na">n/s</span>':'<span class="lg">'+s.transfers+(s.owners!==null?' <span class="u">owners '+s.owners+' (derived)</span>':'')+'</span>'+(s.owners!==null?'<span class="sm">'+s.owners+' <span class="u">owners</span></span>':'<span class="sm">'+s.transfers+' <span class="u">transfers</span></span>'))+
         fig('COE left',s.coeM===null?'<span class="na">n/s</span>':ym(s.coeM)+' <span class="u">'+coeWord(s)+'</span>')+
-        '<div class="sec">'+(s.reg?'<div>Registered <b class="num">'+M.fmtISO(s.reg)+'</b></div>':'')+
+        '<div class="sec">'+(s.reg?'<div>'+(s.firstReg&&s.firstReg!==s.reg?'Original reg. <b class="num">'+M.fmtISO(s.reg)+'</b> · first reg. <b class="num">'+M.fmtISO(s.firstReg)+'</b>':'Registered <b class="num">'+M.fmtISO(s.reg)+'</b>')+'</div>':'')+
         (ctx.length?'<div>'+ctx.join(' · ')+'</div>':'')+
         (coe.length?'<div>'+coe.join(' · ')+'</div>':'')+
         (s.transfers!==null&&s.owners!==null?'<div class="sm">'+s.transfers+' transfer'+pl(s.transfers,'','s')+' → '+s.owners+' owners (derived)'+(s.coeM!==null?' · COE '+coeWord(s):'')+'</div>':'')+
@@ -1500,6 +1538,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       var f=S.lta[def.k],ed=S.editing[def.k];
       var val;
       if(ed)val='<input id="ed_'+def.k+'" data-k="'+def.k+'" value="'+esc(editVal(def,f.value))+'" placeholder="'+(def.type==='date'?'29 Apr 2022':def.type==='money'?'136,610':'')+'" aria-label="'+esc(def.label)+'">';
+      else if(f.status==='none')val='None<span class="s">source: “'+esc(f.source)+'”</span>';
       else if(f.status==='conflict')val='<span class="amb">Needs input · two different values on the document — pick one</span><span class="s">'+f.candidates.map(function(c,i){return '<button class="choice" type="button" data-pick="'+def.k+'" data-i="'+i+'">'+fmtField(def,c.value)+' <span class="sub">· “'+esc(c.source)+'”</span></button>'}).join(' ')+'</span>';
       else val=fmtField(def,f.value)+'<span class="s'+(f.status==='edited'?' amb':'')+'">'+
         (f.status==='exact'?(fr==='demo'?'sample':'source: “'+esc(f.source)+'”'):f.status==='edited'?'edited by dealer'+(f.orig!==undefined&&f.orig!==null?' · PDF said '+esc(editVal(def,f.orig)):''):fr==='pdf'?(f.source==='not on document'?'not on the document — nothing filled in':esc(f.source)):'')+'</span>';
@@ -1769,15 +1808,16 @@ if(typeof module!=='undefined')module.exports=MPD;
     $('poolTitle').textContent=titles[S.tab];
     $('whyBtn').hidden=S.tab!=='short';
     var regWin=subj.reg?monYr(isoAdd(subj.reg,-18))+' – '+monYr(isoAdd(subj.reg,18)):'any date';
-    $('poolSub').textContent=S.tab==='short'?(c.short+' shortlisted · same model family ('+(fk.fam||'any').toUpperCase()+'), original COE, registered within 18 months ('+regWin+')'+(S.pool.refs.length?' · '+S.pool.refs.length+' kept for reference':'')+(S.pool.own.length?' · Motorway stock shown for context':'')):
+    var coeTxt=S.pool.coeRenewed?'renewed COE within '+S.pool.coeNear+' months of this car\'s COE left':'original COE';
+    $('poolSub').textContent=S.tab==='short'?(c.short+' shortlisted · same model family ('+(fk.fam||'any').toUpperCase()+'), '+coeTxt+', registered within 18 months ('+regWin+')'+(S.pool.refs.length?' · '+S.pool.refs.length+' kept for reference':'')+(S.pool.own.length?' · Motorway stock shown for context':'')):
       S.tab==='all'?S.listings.length+' · grouped by how close they are to this car · sorted by asking within each group':
-      S.tab==='plaus'?'same model family · original COE · registered within 3 years':S.tab==='needs'?'two source values conflict — pick one; nothing is guessed':'not vehicle listings';
+      S.tab==='plaus'?'same model family · '+coeTxt+' · registered within 3 years':S.tab==='needs'?'two source values conflict — pick one; nothing is guessed':'not vehicle listings';
     $('why').hidden=!(S.why&&S.tab==='short');
     $('why').innerHTML='<b>How the shortlist is picked</b> (fixed rules, no AI, no scores):<ol>'+
       '<li>Same model family as this car: title contains “'+esc(fk.fam||'—')+'”'+(fk.make?' and “'+esc(fk.make)+'”':'')+'. Seat layouts such as 4+1 are ignored.</li>'+
-      '<li>Variant class: <b>exact</b> (same variant words'+(fk.variant.length?': '+esc(fk.variant.join(' ').toUpperCase()):'')+'), <b>related</b> (extra or different spec words, e.g. Performance Battery Plus, Sunroof — included but not the same spec) or <b>different body style</b> (e.g. Cross Turismo — set aside). Exact comes first.</li>'+
+      '<li>Variant class: <b>exact</b> (same variant words'+(fk.variant.length?': '+esc((fk.variantText||fk.variant.join(' ')).toUpperCase()):'')+'), <b>related</b> (extra or different spec words, e.g. Performance Battery Plus, Sunroof — included but not the same spec) or <b>different body style</b> (e.g. Cross Turismo — set aside). Exact comes first.</li>'+
       '<li>Active listings with an asking price. Sold listings (SGCarMart\'s own sold status) are never suggested.</li>'+
-      '<li>Original COE with 2+ years left, registered within 18 months of this car'+(subj.reg?'':' (this car\'s registration date is not stated, so no date window)')+'. Then nearest on mileage, owners and COE left. Top 8.</li>'+
+      '<li>'+(S.pool.coeRenewed?'Renewed COE (like this car) with COE left within '+S.pool.coeNear+' months of this car\'s '+ym(subj.coeM):'Original COE with 2+ years left')+', registered within 18 months of this car'+(subj.reg?(subj.firstReg&&subj.firstReg!==subj.reg?' (original registration date; the first registration date is shown for reference only)':''):' (this car\'s registration date is not stated, so no date window)')+'. Then nearest on mileage, owners and COE left. Top 8.</li>'+
       '<li>Up to 2 with a different COE situation, and any Motorway stock, are shown for context and start unticked.</li></ol>';
     $('pExc').checked=$('pExcM').checked=S.excOnly;
     renderPoolTable();
@@ -1801,8 +1841,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     return [
       ['In shortlist · '+ns,g('short'),Object.keys(S.inc).filter(function(id){return S.inc[id]&&tierOf(byId(id))==='short'}).length+' included'],
       ['Needs review · '+g('needs').length,g('needs'),'two source values conflict — pick one; nothing is guessed'],
-      ['Wider matches · '+g('plausible').length+' more',g('plausible'),'same model family · original COE · registered within 3 years · exact values accepted as read'],
-      ['Set aside · '+aside.length,aside,'sold, different model or body style, renewed or short COE, or registered far apart']
+      ['Wider matches · '+g('plausible').length+' more',g('plausible'),'same model family · '+(S.pool.coeRenewed?'renewed COE near this car\'s':'original COE')+' · registered within 3 years · exact values accepted as read'],
+      ['Set aside · '+aside.length,aside,'sold, different model or body style, '+(S.pool.coeRenewed?'COE situation unlike this car':'renewed or short COE')+', or registered far apart']
     ];
   }
   function secHead(){return S.fieldsInSource&&S.fieldsInSource.indexOf('omv')>=0?'OMV · ARF · Reg':'Registered · dealer'}
@@ -1873,9 +1913,9 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(l.possibleSame)add('Possible same car','','amb','Same registration date, variant and COE left as this car.');
     if(l.sold)add('Sold','no asking price','','SGCarMart listing status (“sold · View Similar”). Never counted in the figures.');
     if(l.status==='needs_input')add('Needs input','pick the variant','amb','Title lines disagree: “'+l.conflict.candidates[0].source+'” vs “'+l.conflict.candidates[1].source+'” — pick one. Nothing is guessed.');
-    if(l.vclass==='adjacent'&&!l.sold)add('Related variant','not same spec','amb',l.vlabel+'. Included, but never counted as an exact comp.');
+    if(l.vclass==='adjacent'&&!l.sold)add('Related variant',l.opc&&/OPC/.test(l.vlabel||'')?'OPC · not same spec':'not same spec','amb',l.vlabel+'. Included, but never counted as an exact comp.');
     if(l.vclass==='different'&&!l.sold&&t!=='aside')add('Different body style',l.vlabel.replace(/^Different body style — /,''),'amb',l.vlabel+'. Set aside from the shortlist.');
-    var cr=M.coeReason(l),old=l.reg&&M.ageYears(l.reg,S.asAt)>=9;
+    var cr=coeNoteOf(l),old=l.reg&&M.ageYears(l.reg,S.asAt)>=9;
     var dd=depMed!==null&&l.dep!==null?l.dep-depMed:null;
     var hi=dd!==null&&l.dep>=depMed*1.10,lo=dd!==null&&l.dep<=depMed*0.90;
     if(!l.sold&&l.status!=='needs_input'&&cr&&!S.inc[l.id]&&inShort){
@@ -1884,7 +1924,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       if(hi)add('High depreciation',kAbbr(dd,true)+'/yr above comp median','amb','Yearly depreciation is 10% or more above the median of the ticked comps. A cue to look at why; it does not say the asking price is wrong.');
       if(lo)add('Low depreciation',kAbbr(-dd,true)+'/yr below comp median','amb','Yearly depreciation is 10% or more below the median of the ticked comps. A cue to look at why; it does not say the asking price is wrong.');
       if(old&&!l.sold)add('Registered 9+ yrs ago','',cr?'amb':'','Near or past the 10-year point.');
-      if(cr&&!l.sold&&t!=='aside')add(cr.charAt(0).toUpperCase()+cr.slice(1),l.renewedSource&&l.renewedSource!=='sample'?l.renewedSource:'','amb',l.renewed?'Asking price and depreciation are not like-for-like with an original-COE car.':'Under 2 years of COE left.');
+      if(cr&&!l.sold&&t!=='aside')add(cr.charAt(0).toUpperCase()+cr.slice(1),l.renewedSource&&l.renewedSource!=='sample'?l.renewedSource:'','amb',coeRenewedSubj()?'COE situation is not like-for-like with this car (renewed COE, '+ym(S.subject.coeM)+' left).':l.renewed?'Asking price and depreciation are not like-for-like with an original-COE car.':'Under 2 years of COE left.');
     }
     if(l.f&&l.f.km&&l.f.km.status==='unusual')add('Mileage '+(/low/.test(l.f.km.note)?'low':'high')+' for age','accepted as read','amb',l.f.km.note.charAt(0).toUpperCase()+l.f.km.note.slice(1)+' — review. The value is kept exactly as read.');
     var st=M.carStory(l);
@@ -1894,7 +1934,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var miss=[],fs=S.fieldsInSource||[];
     [['price','asking'],['dep','depreciation'],['km','mileage'],['owners','owners'],['coeM','COE left'],['omv','OMV'],['arf','ARF'],['cond','condition']].forEach(function(p){
       if(fs.indexOf(p[0])<0)return;if(l.sold&&(p[0]==='price'))return;
-      if(l[p[0]]===null)miss.push(p[1]);
+      if(l[p[0]]===null&&!(p[0]==='owners'&&l.ownersGt))miss.push(p[1]);
     });
     if(miss.length)add('Not stated',miss.join(', '),l.sold?'':'ns','Nothing is filled in for a missing field.'); // sold rows: gaps are expected, not an exception
     if(l.picked)add('Variant picked by dealer','“'+l.picked+'”','','');
@@ -1937,7 +1977,7 @@ if(typeof module!=='undefined')module.exports=MPD;
     var kmD=(l.km!==null&&s.km!==null)?'<span class="d num'+(Math.abs(l.km-s.km)>=20000?' amb':'')+'">'+delta(l.km-s.km,'','same')+'</span>':'';
     var owD=(l.owners!==null&&s.owners!==null)?'<span class="d num'+(l.owners!==s.owners?' amb':'')+'">'+delta(l.owners-s.owners,'','same')+'</span>':'';
     var coeD='';
-    if(l.coeM!==null&&s.coeM!==null){var d=l.coeM-s.coeM,amb=l.renewed||l.coeM<24;coeD='<span class="d num'+(amb?' amb':'')+'">'+(l.renewed?'Renewed · ':'')+(d===0?'same':(d>0?'+':'−')+Math.abs(d)+' mo')+'</span>'}
+    if(l.coeM!==null&&s.coeM!==null){var d=l.coeM-s.coeM,amb=!!coeNoteOf(l);coeD='<span class="d num'+(amb?' amb':'')+'">'+(l.renewed?'Renewed · ':'')+(d===0?'same':(d>0?'+':'−')+Math.abs(d)+' mo')+'</span>'}
     var src=function(f){return f&&f.status==='unusual'?'<span class="src">source: “'+esc(f.source)+'”</span>':''};
     return '<tr class="'+(off?'off ':'')+(needs||l.own||l.possibleSame?'rev':'')+'">'+
       '<td class="state">'+stateCell(l,ctx)+'</td>'+
@@ -1945,7 +1985,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<td class="r">'+(l.price===null?(l.sold?'<span class="v dim">Sold</span>':'<span class="v na">Not stated</span>'):'<span class="v price num">'+money(l.price)+'</span>')+'</td>'+
       '<td class="r">'+(l.dep===null?'<span class="v na">Not stated</span>':'<span class="v num">'+money(l.dep)+'<span class="u">/yr</span></span>'+depDelta(l,depMed))+'</td>'+
       '<td class="r">'+(l.km===null?'<span class="v na">Not stated</span>':'<span class="v num">'+kmF(l.km)+'<span class="u">km</span></span>'+kmD+src(l.f&&l.f.km))+'</td>'+
-      '<td class="r">'+(l.owners===null?'<span class="v na">Not stated</span>':'<span class="v num">'+l.owners+'</span>'+owD)+'</td>'+
+      '<td class="r">'+(ownTxt(l)===null?'<span class="v na">Not stated</span>':'<span class="v num">'+ownTxt(l)+'</span>'+owD)+'</td>'+
       '<td>'+(l.coeM===null?'<span class="v na">Not stated</span>':'<span class="v num">'+ym(l.coeM)+'</span>'+coeD)+'</td>'+
       (ctx==='pool'||S.showSec?'<td class="r"><span class="d num" style="margin-top:3px">'+secCell(l)+'</span></td>':'')+
       '</tr>';
@@ -1963,8 +2003,8 @@ if(typeof module!=='undefined')module.exports=MPD;
       '<div class="g">'+
       cell('Dep / yr',l.dep===null?'n/s':kAbbr(l.dep,true),dd===null?'':dd===0?'at comp median':kAbbr(Math.abs(dd),true)+'/yr '+(dd>0?'above':'below')+' comp median',dd!==null&&(l.dep>=depMed*1.1||l.dep<=depMed*0.9))+
       cell('Mileage',l.km===null?'n/s':kAbbr(l.km),l.km!==null&&s.km!==null?(l.km-s.km>0?'+':'')+kAbbr(l.km-s.km):'',l.km!==null&&s.km!==null&&Math.abs(l.km-s.km)>=20000)+
-      cell('Owners',l.owners===null?'n/s':l.owners,l.owners!==null&&s.owners!==null?delta(l.owners-s.owners,'','same'):'',l.owners!==null&&s.owners!==null&&l.owners!==s.owners)+
-      cell('COE',l.coeM===null?'n/s':ym(l.coeM),l.coeM!==null&&s.coeM!==null?delta(l.coeM-s.coeM,' mo','same'):'',l.renewed||(l.coeM!==null&&l.coeM<24))+
+      cell('Owners',ownTxt(l)===null?'n/s':ownTxt(l),l.owners!==null&&s.owners!==null?delta(l.owners-s.owners,'','same'):'',l.owners!==null&&s.owners!==null&&l.owners!==s.owners)+
+      cell('COE',l.coeM===null?'n/s':ym(l.coeM),l.coeM!==null&&s.coeM!==null?delta(l.coeM-s.coeM,' mo','same'):'',l.coeM!==null&&!!coeNoteOf(l))+
       '</div>'+detailsHtml(l,depMed,ctx)+'</div>';
   }
 
@@ -1979,7 +2019,7 @@ if(typeof module!=='undefined')module.exports=MPD;
       if(k&&(l.km===null||l.km>=k))return false;
       return true;
     }).sort(function(a,b){
-      var x=a[s],y=b[s];
+      var x=a[s],y=b[s];if(s==='owners'){x=x===null&&a.ownersGt?a.ownersGt+0.5:x;y=y===null&&b.ownersGt?b.ownersGt+0.5:y}
       if(x===null&&y===null)return a.id-b.id;
       if(x===null)return 1;            // not-stated values always sort last
       if(y===null)return -1;
@@ -2024,8 +2064,10 @@ if(typeof module!=='undefined')module.exports=MPD;
       m.innerHTML='<div class="eyebrow">Market evidence · 0 selected</div><div class="caution">No comparables with an asking price are ticked, so there is no asking evidence to show. Tick at least one listing.</div>';
     }else{
       var c='';
-      if(ev.renewed)c+='<div class="caution">'+ev.renewed+' selected comparable'+pl(ev.renewed,' has',' have')+' a renewed COE. Not like-for-like with this car, and included in the figures above.</div>';
-      if(ev.short)c+='<div class="caution">'+ev.short+' selected comparable'+pl(ev.short,' has',' have')+' under 2 years of COE left. Not like-for-like with this car, and included in the figures above.</div>';
+      var coeOff=set.filter(function(l){return l.price!==null&&!!coeNoteOf(l)}).length;
+      if(coeRenewedSubj()){if(coeOff)c+='<div class="caution">'+coeOff+' selected comparable'+pl(coeOff,' has',' have')+' a COE situation unlike this car (renewed, '+ym(S.subject.coeM)+' left). Included in the figures above.</div>'}
+      else if(ev.renewed)c+='<div class="caution">'+ev.renewed+' selected comparable'+pl(ev.renewed,' has',' have')+' a renewed COE. Not like-for-like with this car, and included in the figures above.</div>';
+      if(ev.short&&!coeRenewedSubj())c+='<div class="caution">'+ev.short+' selected comparable'+pl(ev.short,' has',' have')+' under 2 years of COE left. Not like-for-like with this car, and included in the figures above.</div>';
       if(ev.noPrice)c+='<div class="sub" style="margin-top:8px">'+ev.noPrice+' ticked listing'+pl(ev.noPrice,' has',' have')+' no asking price (sold or not stated) and '+pl(ev.noPrice,'is','are')+' not in these figures.</div>';
       m.innerHTML='<div class="eyebrow">Market evidence · <span id="sCount">'+ev.n+'</span> selected</div>'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px"><span style="font-size:13.5px;color:var(--muted)">Median asking</span><span class="num mont" style="font-size:22px;font-weight:700" id="sMed">'+money(ev.med)+'</span></div>'+
@@ -2095,8 +2137,8 @@ if(typeof module!=='undefined')module.exports=MPD;
     if(mk.adjacent)x.push('<b>Related variants</b> — '+mk.adjacent+' of '+mk.evidence.n+' ticked comps are not the same spec ('+esc(uniq(set.filter(function(l){return !l.own&&l.vclass!=='exact'&&l.price!==null}).map(function(l){return l.vlabel.replace(/^Related variant — /,'').replace(/ · not the same spec$/,'')})).join('; '))+').');
     if(e.provisional)x.push('<b>Some costs are blank and currently treated as $0</b> — '+esc(e.blanks.join(', '))+'. The maximum below is provisional.');
     if(v.resale===null)x.push('<b>Expected sale price not entered</b> — the maximum cannot be calculated. Dealer input on the Comparison desk.');
-    var ns=set.filter(function(l){return l.price!==null&&(l.dep===null||l.km===null||l.owners===null||l.coeM===null)});
-    if(ns.length)x.push('<b>Not stated</b> — '+ns.map(function(l){var m=[];if(l.dep===null)m.push('depreciation');if(l.km===null)m.push('mileage');if(l.owners===null)m.push('owners');if(l.coeM===null)m.push('COE');return 'Listing '+l.id+' '+m.join(', ')}).join('; ')+'.');
+    var ns=set.filter(function(l){return l.price!==null&&(l.dep===null||l.km===null||ownTxt(l)===null||l.coeM===null)});
+    if(ns.length)x.push('<b>Not stated</b> — '+ns.map(function(l){var m=[];if(l.dep===null)m.push('depreciation');if(l.km===null)m.push('mileage');if(ownTxt(l)===null)m.push('owners');if(l.coeM===null)m.push('COE');return 'Listing '+l.id+' '+m.join(', ')}).join('; ')+'.');
     return x;
   }
   function uniq(a){return a.filter(function(v,i){return a.indexOf(v)===i})}
@@ -2105,13 +2147,13 @@ if(typeof module!=='undefined')module.exports=MPD;
     var desk=deskList(),fo=M.toNum(S.finalOffer),fgp=(v.resale===null||fo===null)?null:v.resale-e.r0-e.o0-fo;
     var h='';
     // 01 Car
-    var facts=[['Registered',s.reg?M.fmtISO(s.reg):null],['Mileage',s.km!==null?kmF(s.km)+' km':null],['Transfers',s.transfers,s.owners!==null?' · owners '+s.owners+' (derived)':''],['COE',s.coeM!==null?ym(s.coeM):null,s.coeM!==null?' '+coeWord(s):''],['Propellant',s.propellant]];
+    var facts=[['Registered',s.reg?M.fmtISO(s.reg):null]].concat(s.firstReg&&s.firstReg!==s.reg?[['First registered',M.fmtISO(s.firstReg)]]:[]).concat([['Mileage',s.km!==null?kmF(s.km)+' km':null],['Transfers',s.transfers,s.owners!==null?' · owners '+s.owners+' (derived)':''],['COE',s.coeM!==null?ym(s.coeM):null,s.coeM!==null?' '+coeWord(s):''],['Propellant',s.propellant]]);
     h+='<div class="printhead">Motorway Pricing Desk · appraisal sheet · '+asAtStr()+' · concept, not an official Motorway system · asking prices are not sale prices</div>'+
       '<div class="dechead mobile-only">Decision Summary</div>'+
       '<div class="step"><div class="no">01<br>CAR</div><div><div class="eyebrow">Car being appraised · trade‑in · as at '+asAtStr()+'</div>'+
       '<div class="mont dname" style="font-size:34px;font-weight:700;letter-spacing:-.015em;line-height:1.1;margin-top:6px">'+esc(s.name)+'</div>'+
       '<div class="num" style="font-size:15px;color:var(--ink2);margin-top:10px;display:flex;gap:6px 18px;flex-wrap:wrap">'+facts.map(function(f){return '<span>'+f[0]+' '+(f[1]===null||f[1]===undefined?'<span class="na">not stated</span>':'<b style="font-weight:600;color:var(--ink)">'+esc(f[1])+'</b>'+esc(f[2]||''))+'</span>'}).join('')+'</div>'+
-      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · COE paid (QP) '+money(s.qp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
+      '<div class="num sub" style="margin-top:6px">OMV '+(s.omv!==null?money(s.omv):'not stated')+' (context only · not used in pricing maths) · ARF '+(s.arf!==null?money(s.arf):'not stated')+(s.qp!==null?' · COE paid (QP) '+money(s.qp):'')+(s.pqp!==null?' · PQP paid '+money(s.pqp):'')+' · Min. PARF benefit '+(s.parf!==null?money(s.parf):s.parfNone?'none'+(s.parfElig?' ('+esc(String(s.parfElig).toLowerCase())+')':''):'not stated')+(s.roadTaxExpiry?' · Road tax to '+M.fmtISO(s.roadTaxExpiry):'')+' · Condition not assessed by the desk</div></div></div>';
     // 02 Exceptions first
     var ex=exceptionsList(mk,e,v);
     h+='<div class="step"><div class="no">02<br>CHECK</div><div><h2>Exceptions to review</h2>'+
@@ -2132,12 +2174,12 @@ if(typeof module!=='undefined')module.exports=MPD;
       obs.push(['','This car: <b class="num">'+(s.km!==null?kmF(s.km)+' km':'mileage n/s')+'</b> vs comps '+(rng('km',kmF)||'n/s')+' · <b class="num">'+(s.owners!==null?s.owners:'n/s')+'</b> owners'+(s.ownersDerived?' (derived)':'')+' vs '+(rng('owners',String)||'n/s')+' · COE <b class="num">'+(s.coeM!==null?ym(s.coeM):'n/s')+'</b> vs '+(rng('coeM',ym)||'n/s')+'.']);
       if(ev.depMed!==null)priced.forEach(function(l){
         if(l.dep===null)return;
-        if(l.dep<=ev.depMed*0.9)obs.push(['amb','<b>Listing '+l.id+'</b> depreciation is <span class="num">'+money(ev.depMed-l.dep)+'/yr</span> below the comp median (<span class="num">'+money(l.dep)+'/yr</span>)'+(l.km!==null?' with <span class="num">'+kmF(l.km)+' km</span>':'')+(l.owners!==null?', '+l.owners+' owner'+pl(l.owners,'','s'):'')+'.']);
+        if(l.dep<=ev.depMed*0.9)obs.push(['amb','<b>Listing '+l.id+'</b> depreciation is <span class="num">'+money(ev.depMed-l.dep)+'/yr</span> below the comp median (<span class="num">'+money(l.dep)+'/yr</span>)'+(l.km!==null?' with <span class="num">'+kmF(l.km)+' km</span>':'')+(l.owners!==null?', '+l.owners+' owner'+pl(l.owners,'','s'):l.ownersGt?', more than '+l.ownersGt+' owners':'')+'.']);
         if(l.dep>=ev.depMed*1.1)obs.push(['amb','<b>Listing '+l.id+'</b> depreciation is <span class="num">'+money(l.dep-ev.depMed)+'/yr</span> above the comp median.']);
       });
     }
     var offL=desk.filter(function(l){return !S.inc[l.id]});
-    if(offL.length)obs.push(['','Unticked, not counted: '+offL.map(function(l){return 'Listing '+l.id+' ('+(l.own?'Motorway stock':l.possibleSame?'possible same car':M.coeReason(l)||'dealer choice')+(l.price!==null?' · '+money(l.price):'')+')'}).join('; ')+'.']);
+    if(offL.length)obs.push(['','Unticked, not counted: '+offL.map(function(l){return 'Listing '+l.id+' ('+(l.own?'Motorway stock':l.possibleSame?'possible same car':coeNoteOf(l)||'dealer choice')+(l.price!==null?' · '+money(l.price):'')+')'}).join('; ')+'.']);
     if(mk.soldParsed)obs.push(['',mk.soldParsed+' sold listing'+pl(mk.soldParsed,' was','s were')+' parsed from SGCarMart\'s listing status and kept out: sold listings show no asking price.']);
     h+='<div class="step"><div class="no">04<br>NOTES</div><div><h2>Key differences</h2>'+
       (obs.length?obs.map(function(o,i){return '<div class="obs'+(i>=2?' x':'')+'"><span class="dot '+o[0]+'"></span><span>'+o[1]+'</span></div>'}).join(''):'<div class="sub">Tick comparables on the Comparison desk to see differences.</div>')+

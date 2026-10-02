@@ -11,6 +11,8 @@ Single-file HTML pricing desk for used-car acquisition (dealer decision support)
 | `fixtures/sgcm-taycan-4s-ctrl-a.txt` | Real SGCarMart Ctrl+A paste, Taycan 4S search (9 listings: 5 active, 4 sold, 1 Motor-Way) | Frozen acceptance fixture |
 | `fixtures/lta-layout-fake-pii.pdf` | Privacy regression fixture: dense layout with obviously fake personal data next to vehicle fields | Frozen; regenerate with `node tests/make-lta-fake-pii-fixture.mjs` |
 | `fixtures/lta-taycan-4s-synthetic.pdf` | **Synthetic, sanitised** stand-in for an LTA Vehicle Registration Details PDF (Porsche Taycan 4S 4+1). Only the 11 appraisal values Calvin supplied; no personal fields at all. Regenerate with `npm run fixture:lta`. | Frozen acceptance fixture |
+| `fixtures/lta-s2000-synthetic.pdf` | **Synthetic, sanitised** renewed-COE case (Honda S2000 2.2 M): QP and PQP both present, original ≠ first registration date, PARF forfeited, "-" PARF benefit. Vehicle facts only. Regenerate with `npm run fixture:lta`. | Frozen acceptance fixture |
+| `fixtures/sgcm-s2000-22m-paste.txt` | Real SGCarMart results page (S2000 2.2, 9 listings), as pasted by the dealer, link markup stripped to plain text | Frozen parser fixture |
 | `tests/` | `run.mjs` unit + fixture tests; `e2e.mjs` browser run (Playwright) with screenshots to `test-output/`. | |
 | `baseline/v0.6/` | V0.6 prototype + screenshots | **Frozen rollback baseline** (tag `v0.6-baseline`). Never edit. |
 | `design/final-lock/` | Direction A "Showroom Ledger" final design lock (HANDOFF.md + 8 boards) | Frozen design authority. Never edit. |
@@ -62,6 +64,11 @@ npm run e2e        # browser run: V0.6 regression, Taycan flow, E200 full loop, 
 - **Privacy:** first cell only, typed and allowlisted values, free text never read from the next line; pdf.js served from `vendor/`.
 - **Flow:** sticky Back / Continue on every stage; final offer (owner) is separate from the starting offer (dealer); exceptions-only filter; "Why this comp?"; owner summary replaces the external-AI brief.
 - **Market Pulse (manual, daily):** the dealer searches the same SGCarMart market each day. "Market history → Save today's market" downloads a snapshot JSON (market data only, no subject car); the next day "Compare with previous" diffs by a price-free identity (title + registration + dealer, mileage as check). Absent = *no longer listed*; only SGCarMart's own status = *sold*. Partial or different coverage → loud warning, absences not classified.
+- **Real-client hardening (S2000, 2 Oct 2026), general rules only:**
+  - *Raw facts stay distinct:* Quota Premium (QP) and PQP Paid are separate fields and never fill each other; original and first registration dates are both kept. "-" under a money label = none on the document (not a parse failure); PARF "Forfeited" and COE category "E - Open Category" are read as written.
+  - *Normalisation:* harmless spelling ("2.2 M" = "2.2M", "1.5 A" = "1.5A") never changes a variant. OPC is a different scheme: related, never exact, tagged on the row. SGCarMart "More than 6" owners is kept as ">6", never a count.
+  - *COE judged against this car:* original-COE cars keep the V0.6 rule. A renewed-COE car (inferred from its own dates) counts renewed comps with COE left within 12 months as like-for-like; very different COE left (e.g. a fresh 10-yr COE) is shown for reference, unticked, with the reason.
+  - *Open question for Motorway:* matching still uses the original registration date. Whether the first registration date should drive the date window for re-registered cars needs dealer confirmation.
 - **No auto-scraping, no backend, no storage:** the app makes no network requests for data; a test enforces it.
 
 ## NEXT — deferred until Vendi validates the core appraisal workflow

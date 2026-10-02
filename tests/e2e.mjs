@@ -41,6 +41,7 @@ const text = (page, sel) => page.locator(sel).first().innerText();
 const document_has = (html, id) => html.includes('id="' + id + '"');
 const E200 = readFileSync(root + 'fixtures/sgcm-e200-avantgarde-ctrl-a.txt', 'utf8');
 const TAYCAN = readFileSync(root + 'fixtures/sgcm-taycan-4s-ctrl-a.txt', 'utf8');
+const S2000 = readFileSync(root + 'fixtures/sgcm-s2000-22m-paste.txt', 'utf8');
 const paste = (page, t) => page.evaluate(t => { const dt = new DataTransfer(); dt.setData('text/plain', t); document.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true })); }, t);
 const setVal = async (page, sel, v) => { await page.fill(sel, ''); await page.type(sel, v); };
 const next = (page) => page.click('#actNext');
@@ -205,7 +206,7 @@ async function taycanSubject(p) {
   check('D: pulse shows price reduction', /Price reductions\s*1/.test(pulse));
   check('D: disappeared listing = No longer listed, not sold', /No longer listed\s*1/.test(pulse) && /Marked sold by SGCarMart\s*1/.test(pulse));
   check('D: pulse has a market read and never claims demand', /Market read/i.test(pulse) && !/demand/i.test(pulse.replace('not sales or demand', '').replace('not proof of low demand', '')));
-  check('D: pulse leads with the market read, figures after', pulse.indexOf('MARKET READ') >= 0 && pulse.indexOf('MARKET READ') < pulse.indexOf('Price reductions') && /30 Sep 2026 → 30 Sep 2026/.test(pulse));
+  check('D: pulse leads with the market read, figures after', pulse.indexOf('MARKET READ') >= 0 && pulse.indexOf('MARKET READ') < pulse.indexOf('Price reductions') && /(\d{1,2} [A-Z][a-z]{2} \d{4}) → \1/.test(pulse)); // both captures today (date-agnostic)
   check('D: pulse counts are "Active listings in this capture"', /Active listings in this capture\s*5 → 3/.test(pulse) && !/sitting in the market/i.test(pulse));
   check('D: pulse caveat: price cuts = seller pressure, gone ≠ sold', pulse.includes('Price cuts show seller pressure, not proof of low demand.') && pulse.includes('Gone ≠ sold unless SGCarMart marks it sold.'));
   // Softer read → buffer guidance in the rail; the maximum itself never moves because of the pulse.
@@ -412,7 +413,7 @@ async function taycanSubject(p) {
   check('I: diagnostic report shows field status and allowlisted labels', /FIELD STATUS/.test(rep) && /\[make\] label=/.test(rep) && /withheld/.test(rep));
   await p.setInputFiles('#f', root + 'fixtures/lta-taycan-4s-synthetic.pdf');
   await p.waitForFunction(() => /Taycan|TAYCAN/.test(document.getElementById('out').textContent), null, { timeout: 15000 });
-  check('I: diagnostic reads the synthetic fixture (11 fields, values typed ok)', /parseLta: 11 of 15/.test(await text(p, '#out')) && /"PORSCHE" ✓ make/.test(await text(p, '#out')));
+  check('I: diagnostic reads the synthetic fixture (11 fields, values typed ok)', /parseLta: 11 of 17/.test(await text(p, '#out')) && /"PORSCHE" ✓ make/.test(await text(p, '#out')));
   check('I: no page errors', !p.errors.length, p.errors.join(' | '));
   await p.context().close();
 }
@@ -501,6 +502,35 @@ async function taycanSubject(p) {
   await p.click('button[data-tab="plaus"]');
   check('F2: switching tabs keeps the results panel at least 60vh tall (no footer jump)', await p.evaluate(() => document.querySelector('#stPool .panel').getBoundingClientRect().height >= innerHeight * 0.6));
   check('F2: desk footer reads ← Shortlist · Decision →', (await next(p), (await text(p, '#actBack')) === '← Shortlist' && (await text(p, '#actNext')) === 'Decision →'));
+  await p.context().close();
+}
+
+// ---------------------------------------------------------------- S. Renewed-COE car (sanitised S2000): distinct raw facts, normalised variants, COE judged against this car
+{
+  const p = await newPage({ width: 1366, height: 768 });
+  await p.goto(base + 'motorway-pricing-desk.html');
+  await p.setInputFiles('#ltaFile', root + 'fixtures/lta-s2000-synthetic.pdf');
+  await p.waitForSelector('#subjReview:not([hidden])', { timeout: 15000 });
+  await setVal(p, '#subjKm', '91000');
+  const rows = await text(p, '#subjRows');
+  check('S: review keeps QP $17,001 and PQP $50,578 as separate rows', /Quota premium \(QP\)\s*\$17,001/.test(rows) && /PQP paid\s*\$50,578/.test(rows));
+  check('S: review reads COE category E, PARF Forfeited, PARF benefit None ("-"), first registration date', /E - Open Category/i.test(rows) && /Forfeited/.test(rows) && /Minimum PARF benefit\s*None/.test(rows) && /First registration date\s*14 Feb 2008/.test(rows));
+  await p.screenshot({ path: out + 's2000-review-1366.png', fullPage: true });
+  await next(p);
+  await paste(p, S2000);
+  await p.waitForSelector('#stPool:not([hidden])');
+  const band = await text(p, '#band');
+  check('S: band labels QP and PQP separately; Cat E; both registration dates; PARF none (forfeited)', /COE paid \(QP\)\s*\$17,001/.test(band) && /PQP paid\s*\$50,578/.test(band) && !/\(QP\)\s*\$50,578/.test(band) && /Cat E/.test(band) && /Original reg\.\s*12 May 2006 · first reg\.\s*14 Feb 2008/.test(band) && /Min\. PARF benefit none \(forfeited\)/.test(band), band.replace(/\s+/g, ' '));
+  const st = await p.evaluate(() => { const S = window.__mpd.state; const o = {}; S.listings.forEach(l => { o[l.id] = { v: l.vclass, t: S.pool.tier[l.id], inc: !!S.inc[l.id], r: S.pool.reason[l.id] || '' }; }); return o; });
+  check('S: plain 2.2M renewed comp with similar COE is exact and ticked', st[1].v === 'exact' && st[1].t === 'short' && st[1].inc);
+  check('S: fresh 10-yr COE listings stay visible as reference, unticked', [4, 5].every(id => st[id].t === 'short' && !st[id].inc && /Kept for reference · COE left 10y/.test(st[id].r)));
+  check('S: Type S and OPC are related, not exact', [2, 3, 5, 6, 9].every(id => st[id].v === 'adjacent'));
+  await p.click('button[data-tab="all"]');
+  const all = await text(p, '#poolBody');
+  check('S: "More than 6" owners shown as >6, not Not stated; OPC visibly tagged on the row', />6/.test(all) && /OPC · not same spec/i.test(all) && /Type S 2\.2M \(OPC\)/.test(all));
+  check('S: no page errors', !p.errors.length, p.errors.join(' | '));
+  await p.click('button[data-tab="short"]');
+  await p.screenshot({ path: out + 's2000-pool-1366.png', fullPage: false });
   await p.context().close();
 }
 

@@ -236,7 +236,7 @@ const REAL = [
   'Open Market Value', 'as at first registration', '$136,610.00',          // two lines below
   'Actual ARF Paid', '$182,898.00',
   'COE Expiry Date', '28 Apr 2032 11:59 PM',                               // not a plain date → stays missing
-  'COE Category', 'Category B (Cars above 1600cc or 130bhp)',              // descriptive row → stays missing
+  'COE Category', 'Category B (Cars above 1600cc or 130bhp)',              // letter + LTA description → parsed, kept as read
   'QP Paid', '', '$80,210.00',
   'PARF Eligibility', 'Yes',
   'Minimum PARF Benefit', '$91,449.00',
@@ -248,9 +248,9 @@ t.eq('real layout: fields expected from this document all parse', ['omv', 'arf',
 t.eq('real layout: combined PORSCHE/TAYCAN 4S → Make derived, Model split', [rv('make'), RJ.fields.make.status, rv('model'), RJ.fields.model.status], ['PORSCHE', 'derived', 'TAYCAN 4S', 'exact']);
 t.ok('real layout: derived make carries its provenance', /derived from Vehicle Model: PORSCHE\/TAYCAN 4S/.test(RJ.fields.make.source));
 t.eq('real layout: subject reads Porsche · Taycan 4S', (s => [s.make, s.model, s.name])(M.subjectFrom(RJ.fields, 35000, AS_AT)), ['Porsche', 'Taycan 4S', 'Porsche Taycan 4S']);
-t.eq('real layout: COE expiry with a time suffix and a descriptive COE category stay missing (not guessed)', [rv('coeExpiry'), rv('coeCat'), RJ.fields.coeExpiry.status, RJ.fields.coeCat.status], [null, null, 'missing', 'missing']);
+t.eq('real layout: COE expiry with a time suffix stays missing (not guessed); COE category with its description parses as read', [rv('coeExpiry'), rv('coeCat'), RJ.fields.coeExpiry.status, RJ.fields.coeCat.status], [null, 'Category B (Cars above 1600cc or 130bhp)', 'missing', 'exact']);
 t.eq('real layout: road tax absent → missing, not on document', [rv('roadTaxExpiry'), RJ.fields.roadTaxExpiry.source], [null, 'not on document']);
-t.eq('real layout: 12 of 15 fields found (COE expiry, COE category, road tax left missing)', RJ.found, 12);
+t.eq('real layout: 13 of 17 fields found (COE expiry, road tax, first registration date and PQP not on this document)', [RJ.found, M.LTA_FIELDS.length], [13, 17]);
 t.ok('real layout: no fake personal value anywhere in the parser output', !/JOHN|DOE|SXX1234Z|FAKE STREET|123456/.test(JSON.stringify(RJ)));
 t.ok('real layout: no raw lines persisted', !('lines' in RJ) && !('raw' in RJ) && !JSON.stringify(RJ).includes('Vehicle particulars'));
 // Same-line values still win, and lookahead never crosses a personal / boundary label.
@@ -292,5 +292,57 @@ t.eq('columns: tab count between items follows column starts (label col 0, value
 t.eq('csv: plain values pass through, missing → blank', M.toCsv(['a', 'b', 'c'], [[1, null, 'x']]), 'a,b,c\r\n1,,x\r\n');
 t.eq('csv: commas, quotes and line breaks are quoted / doubled', M.toCsv(['n'], [['Thin market; 0 exact, 3 related'], ['say "hi"'], ['line1\nline2']]), 'n\r\n"Thin market; 0 exact, 3 related"\r\n"say ""hi"""\r\n"line1\nline2"\r\n');
 t.eq('csv: numbers stay unformatted so spreadsheets read them as numbers', M.csvCell(136610), '136610');
+
+// ================================================================ M. General rules, proven on a sanitised renewed-COE appraisal (S2000) and the Taycan
+// RAW FACTS stay distinct → NORMALISE harmless spelling → CLASSIFY against this car → RANK → dealer review. No make/model names in the rules.
+{
+const S_AT = new Date(2026, 9, 2); // S2000 search captured 2 Oct 2026
+const SL = await pdfLines(M, 'lta-s2000-synthetic.pdf');
+const SJ = M.parseLta(SL);
+const sv = (k) => SJ.fields[k].value;
+// 1. Raw facts: QP and PQP are different fields and never stand in for each other.
+t.eq('raw facts: QP = $17,001 and PQP = $50,578 from the sanitised PDF', [sv('qp'), sv('pqp')], [17001, 50578]);
+t.eq('raw facts: label and value on one row ("Quota Premium (QP)  $17,001") — "(QP)" is part of the label, not the value', (f => [f.qp.value, f.pqp.value])(M.parseLta(['Quota Premium (QP)\t$17,001.00', 'PQP Paid\t$50,578.00']).fields), [17001, 50578]);
+t.eq('raw facts: values below labels in two columns', (f => [f.qp.value, f.pqp.value])(M.parseLta(['Quota Premium (QP)\tPQP Paid', '$17,001.00\t$50,578.00']).fields), [17001, 50578]);
+t.eq('raw facts: a document with only PQP never fills QP', (f => [f.qp.value, f.qp.status, f.pqp.value])(M.parseLta(['PQP Paid', '$50,578.00']).fields), [null, 'missing', 50578]);
+t.eq('raw facts: a document with only QP never fills PQP', (f => [f.qp.value, f.pqp.value, f.pqp.status])(M.parseLta(['Quota Premium', '$80,210.00']).fields), [80210, null, 'missing']);
+t.eq('raw facts: original and first registration dates kept separately; matching date stays the original', (s => [sv('regDate'), sv('firstRegDate'), s.reg, s.firstReg])(M.subjectFrom(SJ.fields, 91000, S_AT)), ['2006-05-12', '2008-02-14', '2006-05-12', '2008-02-14']);
+t.eq('raw facts: COE category "E - Open Category" parses (kept as read)', sv('coeCat'), 'E - Open Category');
+t.eq('raw facts: COE category accepts only a real A–E category', ['E', 'Cat B', 'E - Open Category', 'A FAKE NAME', 'F - Other', 'Open Category'].map(x => M.typed('coecat', x)), ['E', 'Cat B', 'E - Open Category', null, null, null]);
+t.eq('raw facts: PARF eligibility "Forfeited" parses', sv('parfElig'), 'Forfeited');
+t.eq('raw facts: Minimum PARF benefit "-" = none on the document (status none, no number invented, not a failure)', [sv('parf'), SJ.fields.parf.status, /- \(none on the document\)/.test(SJ.fields.parf.source), M.subjectFrom(SJ.fields, 91000, S_AT).parfNone], [null, 'none', true, true]);
+t.eq('raw facts: "-" one line below a money label also reads as none', (f => [f.parf.value, f.parf.status])(M.parseLta(['Minimum PARF Benefit', '-']).fields), [null, 'none']);
+t.eq('raw facts: 15 of 17 fields read from the S2000 sanitised PDF (transfers and road tax not on it)', SJ.found, 15);
+t.ok('raw facts: no raw lines persisted', !('lines' in SJ) && !JSON.stringify(SJ).includes('SYNTHETIC TEST FIXTURE'));
+// 2. Normalisation: harmless spacing / punctuation never changes a variant; alphanumeric model codes are not glued.
+t.eq('normalise: "2.2 M" == "2.2M", "1.5 A" == "1.5A"', [M.tokens('S2000 2.2 M').join(' ') === M.tokens('S2000 2.2M').join(' '), M.tokens('Jazz 1.5 A').join(' ') === M.tokens('Jazz 1.5A').join(' ')], [true, true]);
+t.eq('normalise: model codes stay separate words ("E200 x" is not "e200x")', M.tokens('E200 x'), ['e200', 'x']);
+// 3–4. Classification and ranking on the real S2000 paste (renewed-COE car, 1y 4m left).
+const SP = M.parseSgcm(fixture('sgcm-s2000-22m-paste.txt'), { asAt: S_AT });
+const SS = M.subjectFrom(SJ.fields, 91000, S_AT);
+const SPool = M.buildPool(SS, SP.listings);
+const sl = (id) => byId(SP.listings, id);
+t.eq('S2000 paste: 9 listings, none sold', [SP.stats.listings, SP.stats.sold], [9, 0]);
+t.eq('subject: renewed COE inferred from its own dates, 1y 4m left', [SS.renewed, SS.coeM], [true, 16]);
+t.eq('owners: "More than 6" keeps its meaning as a lower bound (>6), never a count', [sl(3).owners, sl(3).ownersGt, sl(3).f.owners.status, sl(3).f.owners.source, sl(1).owners, sl(1).ownersGt], [null, 6, 'range', 'More than 6', 6, null]);
+t.eq('variant: plain 2.2M listings are exact for "S2000 2.2 M"', [1, 4, 7, 8].map(id => sl(id).vclass), ['exact', 'exact', 'exact', 'exact']);
+t.ok('variant: Type S stays related, labelled "Type S"', [2, 3, 5, 9].every(id => sl(id).vclass === 'adjacent' && /Related variant — Type S · not the same spec/.test(sl(id).vlabel)), sl(2).vlabel);
+t.ok('variant: OPC stays visibly distinct (related + OPC)', sl(6).vclass === 'adjacent' && sl(6).opc && /Type S · OPC \(off-peak car\) · not the same spec/.test(sl(6).vlabel), sl(6).vlabel);
+t.eq('variant: OPC on an otherwise exact title is related, never exact (generic)', [M.variantClass('Porsche Taycan 4S (OPC)', M.familyKey(TAYCAN)).cls, M.variantClass('Porsche Taycan 4S', M.familyKey(TAYCAN)).cls], ['adjacent', 'exact']);
+t.eq('COE: renewed comps with COE left near this car are compatible, not penalised for being renewed', [1, 2, 3, 6, 7, 9].map(id => sl(id).coeNote), [null, null, null, null, null, null]);
+t.eq('COE: fresh 10-yr COE listings are context, with the reason shown', [4, 5].map(id => sl(id).coeNote), ['COE left 10y 0m vs this car 1y 4m', 'COE left 10y 0m vs this car 1y 4m']);
+t.eq('COE: $120k / 11m COE and $269,888 / fresh 10-yr COE are not treated alike', [M.defaultInclude(sl(1)), M.defaultInclude(sl(4)), SPool.tier[1], SPool.reason[1] || null, SPool.reason[4]], [true, false, 'short', null, 'Kept for reference · COE left 10y 0m vs this car 1y 4m']);
+t.eq('COE: renewed comps penalised by default — before: 9 of 9, now: only those with very different COE left', SP.listings.filter(l => l.coeNote).map(l => l.id), [4, 5, 8]);
+t.eq('ranking: exact + compatible COE first; related comps in wider matches; registration window still from the original date', [SPool.shortlist, SPool.refs, sl(1)._rd, [2, 3, 6, 7, 9].map(id => SPool.tier[id])], [[1, 4, 5], [4, 5], 16, ['plausible', 'plausible', 'plausible', 'plausible', 'plausible']]);
+// Same rule, generic: a car on a freshly renewed 10-yr COE treats fresh renewals as like-for-like and a short renewal as context.
+const FRESH = { make: 'Honda', model: 'S2000 2.2M', reg: '2008-01-10', km: 90000, owners: 3, coeM: 115, renewed: true };
+const fake = (id, coeM, renewed) => ({ id, title: 'Honda S2000 2.2M', status: 'ok', sold: false, price: 200000, dep: 20000, reg: '2008-03-01', km: 80000, owners: 3, coeM, renewed });
+const FL = [fake(1, 120, true), fake(2, 18, true), fake(3, 40, false), fake(4, null, true)];
+M.buildPool(FRESH, FL);
+t.eq('COE (generic): fresh renewal ↔ fresh renewal compatible; short renewal, original COE and unknown COE are context', FL.map(l => l.coeNote), [null, 'COE left 1y 6m vs this car 9y 7m', 'original COE · this car renewed', 'COE left not stated']);
+// Original-COE cars keep the V0.6 rule exactly.
+t.ok('COE: original-COE car (Taycan) keeps the V0.6 rule for every listing', TL.every(l => M.coeContext(l, TAYCAN) === M.coeReason(l)));
+t.ok('COE: original-COE car (E200) keeps the V0.6 rule for every listing', EL.every(l => M.coeContext(l, E200) === M.coeReason(l)));
+}
 
 process.exit(t.done() ? 1 : 0);
